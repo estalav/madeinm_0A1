@@ -5,7 +5,7 @@ This folder contains a small native `SwiftUI` prototype for MadeinM.
 ## What it includes
 
 - a `Catalogo` tab that fetches the public pilot products from Supabase
-- an `Escanear` tab that lets you choose a photo in the simulator and manually confirm a product match
+- an `Escanear` tab that lets you choose a photo in the simulator, manually confirm a product match, and keep a local history of confirmations
 - brand colors and a basic mobile-first visual system
 
 ## Current scope

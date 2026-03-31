@@ -1,112 +1,26 @@
 import PhotosUI
 import SwiftUI
 
-enum AccessMode {
-    case guest
-    case email
-}
-
 struct AppRootView: View {
     let service: MadeinMService
-    @State private var accessMode: AccessMode?
-    @State private var email = ""
-    @State private var emailMessage: String?
 
     var body: some View {
-        Group {
-            if let accessMode {
-                TabView {
-                    NavigationStack {
-                        CatalogView(service: service)
-                    }
-                    .tabItem {
-                        Label("Catalogo", systemImage: "leaf")
-                    }
+        TabView {
+            NavigationStack {
+                CatalogView(service: service)
+            }
+            .tabItem {
+                Label("Catalogo", systemImage: "leaf")
+            }
 
-                    NavigationStack {
-                        ScanPrototypeView(service: service, accessMode: accessMode)
-                    }
-                    .tabItem {
-                        Label("Escanear", systemImage: "camera.viewfinder")
-                    }
-                }
-                .tint(Color("BrandGreen"))
-            } else {
-                AccessChoiceView(
-                    email: $email,
-                    emailMessage: $emailMessage,
-                    continueAsGuest: { accessMode = .guest },
-                    continueWithEmail: {
-                        emailMessage = "Acceso con email preparado para la siguiente integracion de autenticacion. Por ahora puedes seguir como invitado."
-                        accessMode = .email
-                    }
-                )
+            NavigationStack {
+                ScanPrototypeView(service: service)
+            }
+            .tabItem {
+                Label("Escanear", systemImage: "camera.viewfinder")
             }
         }
-    }
-}
-
-private struct AccessChoiceView: View {
-    @Binding var email: String
-    @Binding var emailMessage: String?
-    let continueAsGuest: () -> Void
-    let continueWithEmail: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Spacer()
-
-            Text("MadeinM")
-                .font(.caption.weight(.bold))
-                .textCase(.uppercase)
-                .foregroundStyle(Color("BrandRed"))
-
-            Text("Elige como quieres entrar.")
-                .font(.largeTitle.bold())
-
-            Text("Puedes entrar como invitado para probar el catalogo y el flujo visual, o continuar con tu email para la ruta autenticada que conectaremos despues.")
-                .foregroundStyle(.secondary)
-
-            Button(action: continueAsGuest) {
-                Text("Continuar como invitado")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(Color("BrandGreen"))
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Entrar con email")
-                    .font(.headline)
-
-                TextField("tu-correo@ejemplo.com", text: $email)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.emailAddress)
-                    .autocorrectionDisabled()
-                    .padding()
-                    .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                Button(action: continueWithEmail) {
-                    Text("Seguir con email")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-            }
-
-            if let emailMessage {
-                Text(emailMessage)
-                    .foregroundStyle(Color("BrandGreen"))
-            }
-
-            Spacer()
-        }
-        .padding(24)
-        .background(
-            LinearGradient(
-                colors: [Color("BrandSand").opacity(0.18), .white, Color("BrandGreen").opacity(0.12)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .tint(Color("BrandGreen"))
     }
 }
 
@@ -170,13 +84,14 @@ private struct CatalogView: View {
 
 private struct ScanPrototypeView: View {
     let service: MadeinMService
-    let accessMode: AccessMode
+    @State private var confirmedMatches: [ConfirmedMatch] = []
     @State private var products: [ProductSummary] = []
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: Image?
     @State private var selectedProductID: UUID?
     @State private var isLoadingProducts = false
     @State private var errorMessage: String?
+    @State private var statusMessage: String?
 
     var matchedProduct: ProductSummary? {
         products.first(where: { $0.id == selectedProductID })
@@ -190,10 +105,6 @@ private struct ScanPrototypeView: View {
                         .font(.caption.weight(.bold))
                         .textCase(.uppercase)
                         .foregroundStyle(Color("BrandRed"))
-
-                    Text(accessMode == .guest ? "Modo invitado" : "Modo email")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color("BrandGreen"))
 
                     Text("Toma una foto o elige una imagen en el simulador.")
                         .font(.largeTitle.bold())
@@ -255,6 +166,16 @@ private struct ScanPrototypeView: View {
                     }
                 }
 
+                Button {
+                    confirmCurrentMatch()
+                } label: {
+                    Text("Confirmar coincidencia")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color("BrandGreen"))
+                .disabled(matchedProduct == nil)
+
                 if let matchedProduct {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Resultado actual")
@@ -279,6 +200,42 @@ private struct ScanPrototypeView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(20)
                     .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                }
+
+                if let statusMessage {
+                    Text(statusMessage)
+                        .foregroundStyle(Color("BrandGreen"))
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Confirmaciones recientes")
+                        .font(.headline)
+
+                    if confirmedMatches.isEmpty {
+                        Text("Tus confirmaciones locales apareceran aqui mientras seguimos construyendo la parte conectada al backend.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(confirmedMatches) { match in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(match.product.name)
+                                    .font(.headline)
+
+                                Text(match.product.originStatusLabel)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Color("BrandRed"))
+
+                                Text(match.timestamp.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(16)
+                            .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        }
+                    }
                 }
 
                 if let errorMessage {
@@ -327,9 +284,26 @@ private struct ScanPrototypeView: View {
             if let data = try await item.loadTransferable(type: Data.self),
                let uiImage = UIImage(data: data) {
                 selectedImage = Image(uiImage: uiImage)
+                statusMessage = "Imagen cargada en el prototipo iOS. Elige el producto correcto y confirma la coincidencia."
             }
         } catch {
             errorMessage = error.localizedDescription
         }
     }
+
+    private func confirmCurrentMatch() {
+        guard let matchedProduct else { return }
+
+        statusMessage = "Coincidencia confirmada localmente para \(matchedProduct.name)."
+        confirmedMatches.insert(
+            ConfirmedMatch(id: UUID(), product: matchedProduct, timestamp: Date()),
+            at: 0
+        )
+    }
+}
+
+private struct ConfirmedMatch: Identifiable {
+    let id: UUID
+    let product: ProductSummary
+    let timestamp: Date
 }

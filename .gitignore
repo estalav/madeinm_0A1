@@ -2,3 +2,5 @@
 web/node_modules
 web/.next
 web/.env.local
+ios/MadeinM.xcodeproj/project.xcworkspace/xcuserdata
+ios/MadeinM.xcodeproj/xcuserdata
