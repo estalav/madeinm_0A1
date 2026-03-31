@@ -64,4 +64,22 @@ struct MadeinMService {
 
         return try JSONDecoder().decode([ProductSummary].self, from: data)
     }
+
+    func suggestProducts(query: String, from products: [ProductSummary]) -> [ProductSummary] {
+        let normalized = query
+            .folding(options: .diacriticInsensitive, locale: .current)
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !normalized.isEmpty else {
+            return Array(products.prefix(4))
+        }
+
+        return products.filter { product in
+            let searchable = "\(product.name) \(product.category)"
+                .folding(options: .diacriticInsensitive, locale: .current)
+                .lowercased()
+            return searchable.contains(normalized)
+        }
+    }
 }

@@ -54,6 +54,7 @@ export function ScanResult({ scanId }: { scanId: string }) {
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [suggestedProductId, setSuggestedProductId] = useState<string | null>(null);
+  const [productQuery, setProductQuery] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -132,6 +133,18 @@ export function ScanResult({ scanId }: { scanId: string }) {
     () => products.find((product) => product.id === suggestedProductId),
     [products, suggestedProductId],
   );
+
+  const filteredProducts = useMemo(() => {
+    const query = productQuery.trim().toLowerCase();
+
+    if (!query) {
+      return products;
+    }
+
+    return products.filter((product) =>
+      `${product.name} ${product.category}`.toLowerCase().includes(query),
+    );
+  }, [productQuery, products]);
 
   async function handleConfirmMatch() {
     if (!scan || !selectedProductId) {
@@ -250,13 +263,29 @@ export function ScanResult({ scanId }: { scanId: string }) {
             </p>
 
             <label className="field">
+              <span>Pista del producto</span>
+              <input
+                type="text"
+                placeholder="Ejemplo: mango, limon, aguacate"
+                value={productQuery}
+                onChange={(event) => setProductQuery(event.target.value)}
+              />
+            </label>
+
+            {productQuery ? (
+              <p className="status-note">
+                Coincidencias filtradas: <strong>{filteredProducts.length}</strong>
+              </p>
+            ) : null}
+
+            <label className="field">
               <span>Producto del catalogo</span>
               <select
                 value={selectedProductId}
                 onChange={(event) => setSelectedProductId(event.target.value)}
               >
                 <option value="">Selecciona un producto</option>
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <option key={product.id} value={product.id}>
                     {product.name}
                   </option>

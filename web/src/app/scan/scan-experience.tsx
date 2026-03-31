@@ -301,6 +301,7 @@ export function ScanExperience() {
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
+                  capture="environment"
                   onChange={(event) => handleFileSelection(event.target.files?.[0] ?? null)}
                 />
               </label>
@@ -372,6 +373,7 @@ export function ScanExperience() {
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
+                  capture="environment"
                   onChange={(event) => handleFileSelection(event.target.files?.[0] ?? null)}
                 />
               </label>

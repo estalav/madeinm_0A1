@@ -89,12 +89,17 @@ private struct ScanPrototypeView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: Image?
     @State private var selectedProductID: UUID?
+    @State private var observedHint = ""
     @State private var isLoadingProducts = false
     @State private var errorMessage: String?
     @State private var statusMessage: String?
 
     var matchedProduct: ProductSummary? {
         products.first(where: { $0.id == selectedProductID })
+    }
+
+    var suggestedProducts: [ProductSummary] {
+        service.suggestProducts(query: observedHint, from: products)
     }
 
     var body: some View {
@@ -147,6 +152,33 @@ private struct ScanPrototypeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
+                    Text("Pista del producto")
+                        .font(.headline)
+
+                    TextField("Ejemplo: mango, aguacate, limon", text: $observedHint)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .padding()
+                        .background(.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                    if !suggestedProducts.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(suggestedProducts.prefix(4)) { product in
+                                    Button {
+                                        selectedProductID = product.id
+                                    } label: {
+                                        Text(product.name)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 10)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .tint(Color("BrandGreen"))
+                                }
+                            }
+                        }
+                    }
+
                     Text("Producto del catalogo")
                         .font(.headline)
 
@@ -285,6 +317,9 @@ private struct ScanPrototypeView: View {
                let uiImage = UIImage(data: data) {
                 selectedImage = Image(uiImage: uiImage)
                 statusMessage = "Imagen cargada en el prototipo iOS. Elige el producto correcto y confirma la coincidencia."
+                if observedHint.isEmpty {
+                    observedHint = "mango"
+                }
             }
         } catch {
             errorMessage = error.localizedDescription
