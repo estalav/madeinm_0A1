@@ -32,8 +32,19 @@ function extractTextPayload(payload: unknown) {
   );
 }
 
+export async function GET() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const model = process.env.OPENAI_MODEL ?? "gpt-5-mini";
+
+  return NextResponse.json({
+    enabled: Boolean(apiKey),
+    model,
+  });
+}
+
 export async function POST(request: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
+  const model = process.env.OPENAI_MODEL ?? "gpt-5-mini";
 
   if (!apiKey) {
     return NextResponse.json(
@@ -92,7 +103,7 @@ export async function POST(request: NextRequest) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-4.1-mini",
+      model,
       input: [
         {
           role: "user",

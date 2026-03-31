@@ -60,6 +60,8 @@ export function ScanResult({ scanId }: { scanId: string }) {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [aiReasoning, setAiReasoning] = useState<string | null>(null);
   const [aiConfidence, setAiConfidence] = useState<string | null>(null);
+  const [aiEnabled, setAiEnabled] = useState<boolean | null>(null);
+  const [aiModel, setAiModel] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -125,6 +127,27 @@ export function ScanResult({ scanId }: { scanId: string }) {
 
     loadPage();
   }, [scanId, supabase]);
+
+  useEffect(() => {
+    async function loadAIStatus() {
+      const response = await fetch("/api/recognize", { method: "GET" });
+
+      if (!response.ok) {
+        setAiEnabled(false);
+        return;
+      }
+
+      const payload = (await response.json()) as {
+        enabled?: boolean;
+        model?: string;
+      };
+
+      setAiEnabled(Boolean(payload.enabled));
+      setAiModel(payload.model ?? null);
+    }
+
+    loadAIStatus();
+  }, []);
 
   const matchedProduct = useMemo(
     () => products.find((product) => product.id === (selectedProductId || scan?.matched_product_id)),
@@ -359,11 +382,24 @@ export function ScanResult({ scanId }: { scanId: string }) {
               </p>
             ) : null}
 
+            {aiEnabled === false ? (
+              <p className="status-note">
+                La sugerencia AI todavia no esta activa. Agrega <code>OPENAI_API_KEY</code> en
+                tu archivo local <code>web/.env.local</code> para habilitarla.
+              </p>
+            ) : aiEnabled ? (
+              <p className="status-note">
+                AI lista con modelo <strong>{aiModel ?? "configurado"}</strong>.
+              </p>
+            ) : (
+              <p className="status-note">Comprobando si la sugerencia AI esta disponible...</p>
+            )}
+
             <button
               className="button button-secondary"
               type="button"
               onClick={handleAISuggestion}
-              disabled={isPending || !imageUrl}
+              disabled={isPending || !imageUrl || !aiEnabled}
             >
               {isPending ? "Analizando..." : "Intentar sugerencia AI"}
             </button>

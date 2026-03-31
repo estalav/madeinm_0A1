@@ -46,9 +46,11 @@ Expected env vars:
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-5-mini
 ```
 
 `OPENAI_API_KEY` is only required when you want to enable the optional AI suggestion endpoint at `/api/recognize`.
+`OPENAI_MODEL` is optional. The app defaults to `gpt-5-mini`, which OpenAI documents as a faster, cost-efficient model that supports image input through the Responses API.
 
 ## Running the Web App
 

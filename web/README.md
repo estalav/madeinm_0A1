@@ -19,11 +19,13 @@ Create `web/.env.local` with:
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-5-mini
 ```
 
 You can copy from [`web/.env.example`](/Users/estalav/Documents/CODEX_Projects_Estala.com/web/.env.example).
 
-`OPENAI_API_KEY` is optional. Without it, the app still works, but the AI suggestion button on scan results will return a friendly configuration message instead of a product suggestion.
+`OPENAI_API_KEY` is optional. Without it, the app still works, but the AI suggestion button on scan results stays disabled and the page explains how to enable it.
+`OPENAI_MODEL` is optional and defaults to `gpt-5-mini`.
 
 Then run:
 
