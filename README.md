@@ -23,6 +23,8 @@ This repository already includes:
 - [`docs/supabase-schema.sql`](/Users/estalav/Documents/CODEX_Projects_Estala.com/docs/supabase-schema.sql): core database schema for products, origin evidence, prices, recipes, rewards, and classification runs
 - [`docs/supabase-seed.sql`](/Users/estalav/Documents/CODEX_Projects_Estala.com/docs/supabase-seed.sql): starter pilot data for `Central de Abasto CDMX`
 - [`docs/automatic-recognition-plan.md`](/Users/estalav/Documents/CODEX_Projects_Estala.com/docs/automatic-recognition-plan.md): plan for barcode, OCR, AI, and confidence-based product recognition
+- [`docs/supabase-ai-logging.sql`](/Users/estalav/Documents/CODEX_Projects_Estala.com/docs/supabase-ai-logging.sql): optional server-side table for storing AI usage and token logs
+- [`docs/vercel-setup.md`](/Users/estalav/Documents/CODEX_Projects_Estala.com/docs/vercel-setup.md): deployment checklist for Vercel Hobby
 - [`web`](/Users/estalav/Documents/CODEX_Projects_Estala.com/web): Next.js app that connects to Supabase
 - [`ios`](/Users/estalav/Documents/CODEX_Projects_Estala.com/ios): SwiftUI app prototype for catalog browsing and mobile scan confirmation
 

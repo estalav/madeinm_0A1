@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { logAIUsage } from "@/lib/ai/logging";
 
 type DraftProductInput = {
   name?: string;
@@ -35,6 +36,15 @@ export async function POST(request: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
+    await logAIUsage({
+      provider: "internal",
+      model: "draft-product-route",
+      route: "/api/draft-products",
+      requestKind: "draft-product-create",
+      success: false,
+      errorMessage: "SUPABASE_SERVICE_ROLE_KEY is not configured yet.",
+    });
+
     return NextResponse.json(
       {
         error:
@@ -48,6 +58,17 @@ export async function POST(request: NextRequest) {
   const name = payload.name?.trim();
 
   if (!name) {
+    await logAIUsage({
+      provider: "internal",
+      model: "draft-product-route",
+      route: "/api/draft-products",
+      requestKind: "draft-product-create",
+      success: false,
+      barcodeValue: payload.barcodeValue ?? null,
+      visualGuess: payload.visualGuess ?? null,
+      errorMessage: "Draft products require a name.",
+    });
+
     return NextResponse.json({ error: "Draft products require a name." }, { status: 400 });
   }
 
@@ -61,6 +82,22 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (existingProduct) {
+    await logAIUsage({
+      provider: "internal",
+      model: "draft-product-route",
+      route: "/api/draft-products",
+      requestKind: "draft-product-create",
+      success: true,
+      barcodeValue: payload.barcodeValue ?? null,
+      visualGuess: payload.visualGuess ?? null,
+      matchedProductName: existingProduct.name,
+      reasoning: payload.reasoning ?? null,
+      metadata: {
+        existing: true,
+        status: existingProduct.status,
+      },
+    });
+
     return NextResponse.json({
       created: false,
       existing: true,
@@ -89,6 +126,17 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (productError || !product) {
+    await logAIUsage({
+      provider: "internal",
+      model: "draft-product-route",
+      route: "/api/draft-products",
+      requestKind: "draft-product-create",
+      success: false,
+      barcodeValue: payload.barcodeValue ?? null,
+      visualGuess: payload.visualGuess ?? null,
+      errorMessage: productError?.message ?? "Could not create the draft product.",
+    });
+
     return NextResponse.json(
       { error: productError?.message ?? "Could not create the draft product." },
       { status: 500 },
@@ -141,6 +189,23 @@ export async function POST(request: NextRequest) {
       is_verified: false,
     });
   }
+
+  await logAIUsage({
+    provider: "internal",
+    model: "draft-product-route",
+    route: "/api/draft-products",
+    requestKind: "draft-product-create",
+    success: true,
+    barcodeValue: payload.barcodeValue ?? null,
+    visualGuess: payload.visualGuess ?? null,
+    matchedProductName: product.name,
+    reasoning: payload.reasoning ?? null,
+    metadata: {
+      created: true,
+      status: product.status,
+      aliasCount: aliases.length,
+    },
+  });
 
   return NextResponse.json({
     created: true,

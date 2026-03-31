@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logAIUsage } from "@/lib/ai/logging";
 
 type Candidate = {
   id: string;
@@ -46,6 +47,30 @@ function extractTextPayload(payload: unknown) {
   );
 }
 
+function extractUsage(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return {
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+    };
+  }
+
+  const record = payload as {
+    usage?: {
+      input_tokens?: number;
+      output_tokens?: number;
+      total_tokens?: number;
+    };
+  };
+
+  return {
+    inputTokens: record.usage?.input_tokens ?? null,
+    outputTokens: record.usage?.output_tokens ?? null,
+    totalTokens: record.usage?.total_tokens ?? null,
+  };
+}
+
 export async function GET() {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL ?? "gpt-5-mini";
@@ -61,6 +86,17 @@ export async function POST(request: NextRequest) {
   const model = process.env.OPENAI_MODEL ?? "gpt-5-mini";
 
   if (!apiKey) {
+    await logAIUsage({
+      provider: "openai",
+      model,
+      route: "/api/recognize",
+      requestKind: "catalog-recognition",
+      success: false,
+      imageCount: 1,
+      estimatedCatalogCandidates: 0,
+      errorMessage: "OPENAI_API_KEY is not configured yet.",
+    });
+
     return NextResponse.json(
       {
         error:
@@ -78,6 +114,18 @@ export async function POST(request: NextRequest) {
   };
 
   if (!imageUrl && !imageDataUrl) {
+    await logAIUsage({
+      provider: "openai",
+      model,
+      route: "/api/recognize",
+      requestKind: "catalog-recognition",
+      success: false,
+      imageCount: 0,
+      estimatedCatalogCandidates: candidates?.length ?? 0,
+      barcodeValue: barcodeValue ?? null,
+      errorMessage: "Missing imageUrl or imageDataUrl for recognition.",
+    });
+
     return NextResponse.json(
       { error: "Missing imageUrl or imageDataUrl for recognition." },
       { status: 400 },
@@ -90,6 +138,18 @@ export async function POST(request: NextRequest) {
     const imageResponse = await fetch(imageUrl);
 
     if (!imageResponse.ok) {
+      await logAIUsage({
+        provider: "openai",
+        model,
+        route: "/api/recognize",
+        requestKind: "catalog-recognition",
+        success: false,
+        imageCount: 1,
+        estimatedCatalogCandidates: candidates?.length ?? 0,
+        barcodeValue: barcodeValue ?? null,
+        errorMessage: "Could not download the uploaded image for recognition.",
+      });
+
       return NextResponse.json(
         { error: "Could not download the uploaded image for recognition." },
         { status: 400 },
@@ -145,6 +205,18 @@ export async function POST(request: NextRequest) {
   if (!llmResponse.ok) {
     const errorText = await llmResponse.text();
 
+    await logAIUsage({
+      provider: "openai",
+      model,
+      route: "/api/recognize",
+      requestKind: "catalog-recognition",
+      success: false,
+      imageCount: 1,
+      estimatedCatalogCandidates: candidates?.length ?? 0,
+      barcodeValue: barcodeValue ?? null,
+      errorMessage: errorText,
+    });
+
     return NextResponse.json(
       { error: `OpenAI request failed: ${errorText}` },
       { status: 502 },
@@ -153,11 +225,12 @@ export async function POST(request: NextRequest) {
 
   const payload = await llmResponse.json();
   const text = extractTextPayload(payload);
+  const usage = extractUsage(payload);
 
   try {
     const parsed = JSON.parse(text) as Partial<RecognitionResponse>;
 
-    return NextResponse.json({
+    const result = {
       suggestedProductId: parsed.suggestedProductId ?? null,
       confidence: parsed.confidence ?? "baja",
       reasoning: parsed.reasoning ?? "No reasoning was returned.",
@@ -173,8 +246,51 @@ export async function POST(request: NextRequest) {
               : [],
           }
         : null,
-    } satisfies RecognitionResponse);
+    } satisfies RecognitionResponse;
+
+    await logAIUsage({
+      provider: "openai",
+      model,
+      route: "/api/recognize",
+      requestKind: "catalog-recognition",
+      success: true,
+      imageCount: 1,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      totalTokens: usage.totalTokens,
+      estimatedCatalogCandidates: candidates?.length ?? 0,
+      barcodeValue: barcodeValue ?? null,
+      visualGuess: result.visualGuess,
+      matchedProductName:
+        candidates?.find((candidate) => candidate.id === result.suggestedProductId)?.name ?? null,
+      reasoning: result.reasoning,
+      metadata: {
+        usedImageUrl: Boolean(imageUrl),
+        usedImageDataUrl: Boolean(imageDataUrl),
+        draftSuggested: Boolean(result.draftProduct),
+      },
+    });
+
+    return NextResponse.json(result);
   } catch {
+    await logAIUsage({
+      provider: "openai",
+      model,
+      route: "/api/recognize",
+      requestKind: "catalog-recognition",
+      success: false,
+      imageCount: 1,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      totalTokens: usage.totalTokens,
+      estimatedCatalogCandidates: candidates?.length ?? 0,
+      barcodeValue: barcodeValue ?? null,
+      errorMessage: "The AI response was not valid JSON.",
+      metadata: {
+        raw: text,
+      },
+    });
+
     return NextResponse.json(
       {
         error: "The AI response was not valid JSON.",
