@@ -1,0 +1,65 @@
+# MadeinM 0A1
+
+MadeinM is the starting repository for a consumer platform focused on helping people identify, value, and support products that are grown, produced, or made in Mexico.
+
+The first pilot is centered on `Central de Abasto CDMX` and is designed as:
+
+- a `web app` first
+- a future `SwiftUI iOS app`
+- a `Supabase` backend shared by both
+- a trust-first data model that never fakes product origin
+
+## Current Scope
+
+This repository already includes:
+
+- a first `Supabase` schema draft
+- a starter seed dataset for the pilot market
+- a `Next.js` web app scaffold
+- a basic Supabase connection check page
+
+## Repository Structure
+
+- [`docs/supabase-schema.sql`](/Users/estalav/Documents/CODEX_Projects_Estala.com/docs/supabase-schema.sql): core database schema for products, origin evidence, prices, recipes, rewards, and classification runs
+- [`docs/supabase-seed.sql`](/Users/estalav/Documents/CODEX_Projects_Estala.com/docs/supabase-seed.sql): starter pilot data for `Central de Abasto CDMX`
+- [`web`](/Users/estalav/Documents/CODEX_Projects_Estala.com/web): Next.js app that connects to Supabase
+
+## Product Principles
+
+- Never fake origin information
+- Show confidence and evidence behind product classification
+- Start with a focused pilot before scaling across Mexico
+- Build reusable backend foundations for both web and iOS
+
+## Supabase Setup
+
+1. Create a Supabase project
+2. Run [`docs/supabase-schema.sql`](/Users/estalav/Documents/CODEX_Projects_Estala.com/docs/supabase-schema.sql) in the Supabase SQL Editor
+3. Run [`docs/supabase-seed.sql`](/Users/estalav/Documents/CODEX_Projects_Estala.com/docs/supabase-seed.sql)
+4. Copy the project URL and `anon` key into `web/.env.local`
+
+Expected env vars:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+## Running the Web App
+
+From [`web`](/Users/estalav/Documents/CODEX_Projects_Estala.com/web):
+
+```bash
+npm install
+npm run dev
+```
+
+Then open `http://localhost:3000`.
+
+## Next Recommended Steps
+
+- add Supabase row-level security policies
+- create the first real home/search/scan screens
+- add storage buckets for product images
+- begin the product identification workflow
+
