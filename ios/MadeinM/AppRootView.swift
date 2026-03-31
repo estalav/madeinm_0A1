@@ -1,26 +1,112 @@
 import PhotosUI
 import SwiftUI
 
+enum AccessMode {
+    case guest
+    case email
+}
+
 struct AppRootView: View {
     let service: MadeinMService
+    @State private var accessMode: AccessMode?
+    @State private var email = ""
+    @State private var emailMessage: String?
 
     var body: some View {
-        TabView {
-            NavigationStack {
-                CatalogView(service: service)
-            }
-            .tabItem {
-                Label("Catalogo", systemImage: "leaf")
-            }
+        Group {
+            if let accessMode {
+                TabView {
+                    NavigationStack {
+                        CatalogView(service: service)
+                    }
+                    .tabItem {
+                        Label("Catalogo", systemImage: "leaf")
+                    }
 
-            NavigationStack {
-                ScanPrototypeView(service: service)
-            }
-            .tabItem {
-                Label("Escanear", systemImage: "camera.viewfinder")
+                    NavigationStack {
+                        ScanPrototypeView(service: service, accessMode: accessMode)
+                    }
+                    .tabItem {
+                        Label("Escanear", systemImage: "camera.viewfinder")
+                    }
+                }
+                .tint(Color("BrandGreen"))
+            } else {
+                AccessChoiceView(
+                    email: $email,
+                    emailMessage: $emailMessage,
+                    continueAsGuest: { accessMode = .guest },
+                    continueWithEmail: {
+                        emailMessage = "Acceso con email preparado para la siguiente integracion de autenticacion. Por ahora puedes seguir como invitado."
+                        accessMode = .email
+                    }
+                )
             }
         }
-        .tint(Color("BrandGreen"))
+    }
+}
+
+private struct AccessChoiceView: View {
+    @Binding var email: String
+    @Binding var emailMessage: String?
+    let continueAsGuest: () -> Void
+    let continueWithEmail: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Spacer()
+
+            Text("MadeinM")
+                .font(.caption.weight(.bold))
+                .textCase(.uppercase)
+                .foregroundStyle(Color("BrandRed"))
+
+            Text("Elige como quieres entrar.")
+                .font(.largeTitle.bold())
+
+            Text("Puedes entrar como invitado para probar el catalogo y el flujo visual, o continuar con tu email para la ruta autenticada que conectaremos despues.")
+                .foregroundStyle(.secondary)
+
+            Button(action: continueAsGuest) {
+                Text("Continuar como invitado")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color("BrandGreen"))
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Entrar con email")
+                    .font(.headline)
+
+                TextField("tu-correo@ejemplo.com", text: $email)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+                    .autocorrectionDisabled()
+                    .padding()
+                    .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                Button(action: continueWithEmail) {
+                    Text("Seguir con email")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+
+            if let emailMessage {
+                Text(emailMessage)
+                    .foregroundStyle(Color("BrandGreen"))
+            }
+
+            Spacer()
+        }
+        .padding(24)
+        .background(
+            LinearGradient(
+                colors: [Color("BrandSand").opacity(0.18), .white, Color("BrandGreen").opacity(0.12)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
     }
 }
 
@@ -84,6 +170,7 @@ private struct CatalogView: View {
 
 private struct ScanPrototypeView: View {
     let service: MadeinMService
+    let accessMode: AccessMode
     @State private var products: [ProductSummary] = []
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: Image?
@@ -103,6 +190,10 @@ private struct ScanPrototypeView: View {
                         .font(.caption.weight(.bold))
                         .textCase(.uppercase)
                         .foregroundStyle(Color("BrandRed"))
+
+                    Text(accessMode == .guest ? "Modo invitado" : "Modo email")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color("BrandGreen"))
 
                     Text("Toma una foto o elige una imagen en el simulador.")
                         .font(.largeTitle.bold())

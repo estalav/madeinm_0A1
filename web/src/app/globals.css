@@ -457,6 +457,13 @@ select {
   margin-top: 18px;
 }
 
+.entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
 .field {
   display: grid;
   gap: 8px;

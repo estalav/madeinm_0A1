@@ -37,6 +37,7 @@ export function ScanExperience() {
   const router = useRouter();
   const [sessionReady, setSessionReady] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [guestMode, setGuestMode] = useState(false);
   const [email, setEmail] = useState("");
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -240,6 +241,28 @@ export function ScanExperience() {
     router.push(`/scan/${classificationRun.id}`);
   }
 
+  function handleGuestContinue() {
+    setGuestMode(true);
+    setEmailMessage(null);
+    setUploadError(null);
+  }
+
+  function handleGuestPreview(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedFile) {
+      setUploadError("Selecciona una imagen para probar el flujo como invitado.");
+      return;
+    }
+
+    setUploadError(null);
+    setUploadMessage(
+      "Estas en modo invitado. Puedes probar la lectura local del barcode y luego entrar con email para guardar cargas privadas.",
+    );
+  }
+
+  const isGuest = !userId && guestMode;
+
   return (
     <div className="scan-shell">
       <section className="scan-hero">
@@ -334,14 +357,74 @@ export function ScanExperience() {
             </div>
           </section>
         </div>
+      ) : isGuest ? (
+        <div className="scan-grid">
+          <section className="scan-card">
+            <h2>Modo invitado</h2>
+            <p className="scan-copy">
+              Aqui puedes probar la experiencia visual sin guardar nada en Supabase. La
+              imagen se queda solo en tu navegador.
+            </p>
+
+            <form className="scan-form" onSubmit={handleGuestPreview}>
+              <label className="field">
+                <span>Foto del producto</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(event) => handleFileSelection(event.target.files?.[0] ?? null)}
+                />
+              </label>
+
+              <label className="field">
+                <span>Codigo de barras opcional</span>
+                <input
+                  type="text"
+                  placeholder="Ejemplo: 7501234567890"
+                  value={barcodeValue}
+                  onChange={(event) => setBarcodeValue(event.target.value)}
+                />
+              </label>
+
+              <button className="button button-primary" type="submit">
+                Probar como invitado
+              </button>
+            </form>
+
+            {selectedFile ? (
+              <p className="status-note">Archivo seleccionado: {selectedFile.name}</p>
+            ) : null}
+            {detectingBarcode ? <p className="status-note">Intentando leer barcode...</p> : null}
+            {barcodeMessage ? <p className="status-note">{barcodeMessage}</p> : null}
+            {uploadMessage ? <p className="status-ok">{uploadMessage}</p> : null}
+            {uploadError ? <p className="status-error">{uploadError}</p> : null}
+          </section>
+
+          <section className="scan-card">
+            <h2>Entrar despues</h2>
+            <p className="scan-copy">
+              Cuando quieras guardar tus escaneos, comparar resultados o subir imagenes al
+              bucket privado, puedes entrar con tu email desde esta misma pantalla.
+            </p>
+            <button className="button button-secondary" type="button" onClick={() => setGuestMode(false)}>
+              Cambiar a acceso con email
+            </button>
+          </section>
+        </div>
       ) : (
         <div className="scan-grid">
           <section className="scan-card">
-            <h2>Activa tu acceso privado</h2>
+            <h2>Elige como entrar</h2>
             <p className="scan-copy">
-              Como las imagenes de escaneo viven en un bucket privado, necesitas iniciar
-              sesion para probar el flujo real de carga.
+              Puedes explorar primero como invitado o entrar con email para guardar
+              escaneos privados y usar el flujo completo.
             </p>
+
+            <div className="entry-actions">
+              <button className="button button-secondary" type="button" onClick={handleGuestContinue}>
+                Continuar como invitado
+              </button>
+            </div>
 
             <form className="scan-form" onSubmit={handleMagicLink}>
               <label className="field">
@@ -356,7 +439,7 @@ export function ScanExperience() {
               </label>
 
               <button className="button button-primary" type="submit" disabled={sendingLink}>
-                {sendingLink ? "Enviando..." : "Enviar magic link"}
+                {sendingLink ? "Enviando..." : "Entrar con email"}
               </button>
             </form>
 
