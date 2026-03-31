@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ScanExperience } from "./scan-experience";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Escanear | MadeinM",
   description: "Sube fotos y crea registros de clasificacion para el piloto MadeinM.",

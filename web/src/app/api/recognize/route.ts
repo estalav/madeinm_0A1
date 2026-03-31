@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logAIUsage } from "@/lib/ai/logging";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 type Candidate = {
   id: string;
   name: string;

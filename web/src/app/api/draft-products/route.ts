@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logAIUsage } from "@/lib/ai/logging";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 type DraftProductInput = {
   name?: string;
   brandName?: string | null;
