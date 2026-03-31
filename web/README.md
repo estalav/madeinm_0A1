@@ -26,6 +26,7 @@ You can copy from [`web/.env.example`](/Users/estalav/Documents/CODEX_Projects_E
 
 `OPENAI_API_KEY` is optional. Without it, the app still works, but the AI suggestion button on scan results stays disabled and the page explains how to enable it.
 `OPENAI_MODEL` is optional and defaults to `gpt-5-mini`.
+`SUPABASE_SERVICE_ROLE_KEY` is required only if you want the app to create AI-suggested `draft` products from the server side.
 
 Then run:
 

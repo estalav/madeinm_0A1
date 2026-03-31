@@ -6,13 +6,20 @@ export const metadata = {
   description: "Sube fotos y crea registros de clasificacion para el piloto MadeinM.",
 };
 
-export default function ScanPage() {
+export default async function ScanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const initialGuestMode = resolvedSearchParams.mode === "guest";
+
   return (
     <main className="scan-page">
       <div className="scan-nav">
         <Link href="/">Volver al inicio</Link>
       </div>
-      <ScanExperience />
+      <ScanExperience initialGuestMode={initialGuestMode} />
     </main>
   );
 }

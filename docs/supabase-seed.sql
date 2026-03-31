@@ -25,6 +25,7 @@ with upserted_products as (
   values
     ('Jitomate Saladet', 'produce', 'vegetable', null, 'Tomate de uso comun en cocina mexicana.', false, null, 'active'),
     ('Aguacate Hass', 'produce', 'fruit', null, 'Aguacate popular para guacamole y consumo diario.', false, null, 'active'),
+    ('Platano Cavendish', 'produce', 'fruit', null, 'Platano fresco de consumo comun. Puede provenir de oferta nacional o importada segun temporada y proveedor.', false, null, 'active'),
     ('Cebolla Blanca', 'produce', 'vegetable', null, 'Cebolla blanca de uso comun en platillos mexicanos.', false, null, 'active'),
     ('Limon Mexicano', 'produce', 'citrus', null, 'Limon pequeno de sabor intenso, comun en mercados mexicanos.', false, null, 'active'),
     ('Nopal Fresco', 'produce', 'cactus', null, 'Penca de nopal para ensaladas, guisados y asados.', false, null, 'active'),
@@ -47,6 +48,10 @@ join (
     ('Jitomate Saladet', 'tomate saladet'),
     ('Jitomate Saladet', 'jitomate'),
     ('Aguacate Hass', 'aguacate'),
+    ('Platano Cavendish', 'platano'),
+    ('Platano Cavendish', 'banana'),
+    ('Platano Cavendish', 'bananas'),
+    ('Platano Cavendish', 'platano cavendish'),
     ('Cebolla Blanca', 'cebolla'),
     ('Limon Mexicano', 'limon'),
     ('Nopal Fresco', 'nopal'),
@@ -77,7 +82,10 @@ select
     when p.name in ('Mango Ataulfo', 'Nopal Fresco', 'Limon Mexicano') then 'verificado'::public.confidence_level
     else 'alta'::public.confidence_level
   end,
-  'MX',
+  case
+    when p.name = 'Platano Cavendish' then null
+    else 'MX'
+  end,
   case
     when p.name = 'Mango Ataulfo' then 'Chiapas'
     when p.name = 'Aguacate Hass' then 'Michoacan'
@@ -88,6 +96,7 @@ select
   end,
   null,
   case
+    when p.name = 'Platano Cavendish' then 'Producto agregado al piloto para reconocimiento, pero su origen no debe darse por confirmado sin evidencia adicional del proveedor o etiqueta.'
     when p.name = 'Mango Ataulfo' then 'Producto ampliamente asociado con cultivo nacional y registro curado inicial.'
     when p.name = 'Aguacate Hass' then 'Producto comun de origen mexicano en el piloto con validacion curada inicial.'
     when p.name = 'Limon Mexicano' then 'Clasificacion inicial sustentada por catalogo curado para el piloto.'
@@ -100,6 +109,18 @@ where not exists (
   from public.origins o
   where o.product_id = p.id
 );
+
+update public.origins o
+set
+  origin_status = 'no_confirmado',
+  confidence_level = 'media',
+  country_code = null,
+  state_name = null,
+  city_name = null,
+  summary_reason = 'Producto agregado al piloto para reconocimiento, pero su origen no debe darse por confirmado sin evidencia adicional del proveedor o etiqueta.'
+from public.products p
+where o.product_id = p.id
+  and p.name = 'Platano Cavendish';
 
 -- Origin evidence
 insert into public.origin_evidence (
@@ -134,6 +155,28 @@ where not exists (
     and e.evidence_type = 'manual_admin_review'
 );
 
+insert into public.barcodes (product_id, code_value, code_type, source, is_verified)
+select
+  p.id,
+  b.code_value,
+  'other'::public.code_type,
+  b.source,
+  true
+from public.products p
+join (
+  values
+    ('Platano Cavendish', '4011', 'Produce PLU'),
+    ('Platano Cavendish', '94011', 'Produce organic PLU')
+) as b(product_name, code_value, source)
+  on p.name = b.product_name
+where not exists (
+  select 1
+  from public.barcodes existing
+  where existing.product_id = p.id
+    and existing.code_value = b.code_value
+    and existing.code_type = 'other'::public.code_type
+);
+
 -- Nutrition profiles
 insert into public.nutrition_profiles (
   product_id,
@@ -163,6 +206,7 @@ join (
   values
     ('Jitomate Saladet', '100 g', 18, 0.9, 3.9, 0.2, 1.2, 2.6, 'Jitomate fresco'),
     ('Aguacate Hass', '100 g', 160, 2.0, 8.5, 14.7, 6.7, 0.7, 'Aguacate fresco'),
+    ('Platano Cavendish', '100 g', 89, 1.1, 22.8, 0.3, 2.6, 12.2, 'Platano fresco'),
     ('Cebolla Blanca', '100 g', 40, 1.1, 9.3, 0.1, 1.7, 4.2, 'Cebolla fresca'),
     ('Limon Mexicano', '100 g', 30, 0.7, 10.5, 0.2, 2.8, 1.7, 'Limon fresco'),
     ('Nopal Fresco', '100 g', 16, 1.3, 3.3, 0.1, 2.2, 1.5, 'Nopal fresco'),
@@ -275,6 +319,7 @@ from (
   values
     ('Jitomate Saladet', 24.00, 'kg'),
     ('Aguacate Hass', 68.00, 'kg'),
+    ('Platano Cavendish', 29.00, 'kg'),
     ('Cebolla Blanca', 22.00, 'kg'),
     ('Limon Mexicano', 30.00, 'kg'),
     ('Nopal Fresco', 18.00, 'kg'),
@@ -322,6 +367,7 @@ from (
   values
     ('Jitomate Saladet', 29.90, 'kg'),
     ('Aguacate Hass', 84.00, 'kg'),
+    ('Platano Cavendish', 36.00, 'kg'),
     ('Cebolla Blanca', 27.50, 'kg'),
     ('Limon Mexicano', 36.00, 'kg'),
     ('Nopal Fresco', 24.00, 'kg'),

@@ -13,6 +13,20 @@ type ScanRecord = {
   created_at: string;
 };
 
+type ProductCandidate = {
+  id: string;
+  name: string;
+  category: string;
+};
+
+type DraftProductCandidate = {
+  name: string;
+  brandName: string | null;
+  category: string;
+  subcategory: string | null;
+  aliases: string[];
+};
+
 type BarcodeDetectorResult = {
   rawValue?: string;
 };
@@ -32,12 +46,31 @@ function safeFileName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
 }
 
-export function ScanExperience() {
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("We could not read this image file."));
+    };
+
+    reader.onerror = () => reject(new Error("We could not read this image file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?: boolean }) {
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
-  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionReady, setSessionReady] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-  const [guestMode, setGuestMode] = useState(false);
+  const [guestMode, setGuestMode] = useState(initialGuestMode);
+  const [sessionMessage, setSessionMessage] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -49,21 +82,39 @@ export function ScanExperience() {
   const [detectingBarcode, setDetectingBarcode] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);
   const [recentScans, setRecentScans] = useState<ScanRecord[]>([]);
+  const [guestGuess, setGuestGuess] = useState<string | null>(null);
+  const [guestReasoning, setGuestReasoning] = useState<string | null>(null);
+  const [guestConfidence, setGuestConfidence] = useState<string | null>(null);
+  const [guestCatalogMatch, setGuestCatalogMatch] = useState<string | null>(null);
+  const [guestDraftCandidate, setGuestDraftCandidate] = useState<DraftProductCandidate | null>(null);
+  const [draftMessage, setDraftMessage] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const [creatingDraft, setCreatingDraft] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadSession() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const sessionResult = await supabase.auth.getSession();
 
-      if (!isMounted) {
-        return;
+        if (!isMounted) {
+          return;
+        }
+
+        setUserId(sessionResult.data.session?.user.id ?? null);
+        setSessionReady(true);
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setUserId(null);
+        setSessionReady(true);
+        setSessionMessage(
+          "We could not load the session state on this device. You can still continue as guest or sign in with email.",
+        );
       }
-
-      setUserId(session?.user.id ?? null);
-      setSessionReady(true);
     }
 
     loadSession();
@@ -245,6 +296,7 @@ export function ScanExperience() {
     setGuestMode(true);
     setEmailMessage(null);
     setUploadError(null);
+    router.replace("/scan?mode=guest");
   }
 
   function handleGuestPreview(event: FormEvent<HTMLFormElement>) {
@@ -255,10 +307,131 @@ export function ScanExperience() {
       return;
     }
 
+    setLoadingUpload(true);
     setUploadError(null);
-    setUploadMessage(
-      "Estas en modo invitado. Puedes probar la lectura local del barcode y luego entrar con email para guardar cargas privadas.",
-    );
+    setUploadMessage(null);
+    setGuestGuess(null);
+    setGuestReasoning(null);
+    setGuestConfidence(null);
+    setGuestCatalogMatch(null);
+    setGuestDraftCandidate(null);
+    setDraftMessage(null);
+    setDraftError(null);
+
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("product_summary")
+          .select("id, name, category")
+          .order("name", { ascending: true });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        const imageDataUrl = await fileToDataUrl(selectedFile);
+        const response = await fetch("/api/recognize", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageDataUrl,
+            barcodeValue: barcodeValue || null,
+            candidates: (data ?? []) as ProductCandidate[],
+          }),
+        });
+
+        const payload = (await response.json()) as {
+          error?: string;
+          suggestedProductId?: string | null;
+          confidence?: string;
+          reasoning?: string;
+          visualGuess?: string | null;
+          draftProduct?: DraftProductCandidate | null;
+        };
+
+        if (!response.ok) {
+          throw new Error(payload.error ?? "We could not analyze this guest scan.");
+        }
+
+        const matchedProduct = ((data ?? []) as ProductCandidate[]).find(
+          (candidate) => candidate.id === payload.suggestedProductId,
+        );
+
+        setGuestGuess(payload.visualGuess ?? null);
+        setGuestReasoning(payload.reasoning ?? null);
+        setGuestConfidence(payload.confidence ?? null);
+        setGuestCatalogMatch(matchedProduct?.name ?? null);
+        setGuestDraftCandidate(payload.draftProduct ?? null);
+
+        if (matchedProduct) {
+          setUploadMessage(
+            `The guest recognizer suggests ${matchedProduct.name}. You can sign in later to save a real scan record.`,
+          );
+        } else if (payload.visualGuess) {
+          setUploadMessage(
+            `This looks like ${payload.visualGuess}, but it is not in the current pilot catalog yet.`,
+          );
+        } else {
+          setUploadMessage(
+            "We could not match this image confidently. Try a clearer photo or sign in later for the full saved flow.",
+          );
+        }
+      } catch (error) {
+        setUploadError(error instanceof Error ? error.message : "Guest recognition failed.");
+      } finally {
+        setLoadingUpload(false);
+      }
+    })();
+  }
+
+  async function handleCreateDraftProduct() {
+    if (!guestDraftCandidate) {
+      setDraftError("There is no AI draft candidate available yet.");
+      return;
+    }
+
+    setCreatingDraft(true);
+    setDraftMessage(null);
+    setDraftError(null);
+
+    try {
+      const response = await fetch("/api/draft-products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...guestDraftCandidate,
+          barcodeValue: barcodeValue || null,
+          reasoning: guestReasoning,
+          visualGuess: guestGuess,
+        }),
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+        created?: boolean;
+        existing?: boolean;
+        name?: string;
+        status?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "We could not create the draft product.");
+      }
+
+      if (payload.existing) {
+        setDraftMessage(`A matching product already exists: ${payload.name} (${payload.status}).`);
+      } else {
+        setDraftMessage(`Draft product created successfully: ${payload.name} (${payload.status}).`);
+      }
+    } catch (error) {
+      setDraftError(error instanceof Error ? error.message : "Draft creation failed.");
+    } finally {
+      setCreatingDraft(false);
+    }
   }
 
   const isGuest = !userId && guestMode;
@@ -283,9 +456,15 @@ export function ScanExperience() {
         </div>
       </section>
 
+      {sessionMessage ? (
+        <section className="scan-card">
+          <p className="status-note">{sessionMessage}</p>
+        </section>
+      ) : null}
+
       {!sessionReady ? (
         <section className="scan-card">
-          <p className="scan-copy">Cargando estado de sesion...</p>
+          <p className="scan-copy">Checking session state...</p>
         </section>
       ) : userId ? (
         <div className="scan-grid">
@@ -388,8 +567,8 @@ export function ScanExperience() {
                 />
               </label>
 
-              <button className="button button-primary" type="submit">
-                Probar como invitado
+              <button className="button button-primary" type="submit" disabled={loadingUpload}>
+                {loadingUpload ? "Analizando..." : "Probar como invitado"}
               </button>
             </form>
 
@@ -400,6 +579,38 @@ export function ScanExperience() {
             {barcodeMessage ? <p className="status-note">{barcodeMessage}</p> : null}
             {uploadMessage ? <p className="status-ok">{uploadMessage}</p> : null}
             {uploadError ? <p className="status-error">{uploadError}</p> : null}
+
+            {guestGuess || guestCatalogMatch ? (
+              <div className="trust-card">
+                <p className="eyebrow">Resultado invitado</p>
+                <h3>{guestCatalogMatch ?? guestGuess ?? "Sin coincidencia"}</h3>
+                {guestCatalogMatch ? (
+                  <p className="trust-status">Coincidencia encontrada dentro del catalogo piloto</p>
+                ) : guestGuess ? (
+                  <p className="trust-status">
+                    Parece ser {guestGuess}, pero aun no existe en el catalogo piloto
+                  </p>
+                ) : null}
+                <p className="trust-confidence">
+                  {guestConfidence ? `Confianza ${guestConfidence}` : "Sin confianza calculada"}
+                </p>
+                {guestReasoning ? <p className="scan-copy">{guestReasoning}</p> : null}
+                {!guestCatalogMatch && guestDraftCandidate ? (
+                  <>
+                    <button
+                      className="button button-secondary"
+                      type="button"
+                      onClick={handleCreateDraftProduct}
+                      disabled={creatingDraft}
+                    >
+                      {creatingDraft ? "Creating draft..." : "Create draft product"}
+                    </button>
+                    {draftMessage ? <p className="status-ok">{draftMessage}</p> : null}
+                    {draftError ? <p className="status-error">{draftError}</p> : null}
+                  </>
+                ) : null}
+              </div>
+            ) : null}
           </section>
 
           <section className="scan-card">
@@ -408,7 +619,14 @@ export function ScanExperience() {
               Cuando quieras guardar tus escaneos, comparar resultados o subir imagenes al
               bucket privado, puedes entrar con tu email desde esta misma pantalla.
             </p>
-            <button className="button button-secondary" type="button" onClick={() => setGuestMode(false)}>
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={() => {
+                setGuestMode(false);
+                router.replace("/scan");
+              }}
+            >
               Cambiar a acceso con email
             </button>
           </section>
@@ -423,9 +641,9 @@ export function ScanExperience() {
             </p>
 
             <div className="entry-actions">
-              <button className="button button-secondary" type="button" onClick={handleGuestContinue}>
+              <Link className="button button-secondary" href="/scan?mode=guest" onClick={handleGuestContinue}>
                 Continuar como invitado
-              </button>
+              </Link>
             </div>
 
             <form className="scan-form" onSubmit={handleMagicLink}>
