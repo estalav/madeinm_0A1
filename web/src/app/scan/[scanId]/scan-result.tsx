@@ -58,6 +58,8 @@ export function ScanResult({ scanId }: { scanId: string }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [aiReasoning, setAiReasoning] = useState<string | null>(null);
+  const [aiConfidence, setAiConfidence] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -209,6 +211,59 @@ export function ScanResult({ scanId }: { scanId: string }) {
     });
   }
 
+  async function handleAISuggestion() {
+    if (!imageUrl || !products.length) {
+      setPageError("Todavia no tenemos suficiente informacion para intentar la sugerencia AI.");
+      return;
+    }
+
+    setPageError(null);
+    setStatusMessage(null);
+    setAiReasoning(null);
+    setAiConfidence(null);
+
+    startTransition(async () => {
+      const response = await fetch("/api/recognize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl,
+          barcodeValue: scan?.barcode_value ?? null,
+          candidates: products.map((product) => ({
+            id: product.id,
+            name: product.name,
+            category: product.category,
+          })),
+        }),
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+        suggestedProductId?: string | null;
+        confidence?: string;
+        reasoning?: string;
+      };
+
+      if (!response.ok) {
+        setPageError(payload.error ?? "No pudimos obtener una sugerencia AI.");
+        return;
+      }
+
+      if (payload.suggestedProductId) {
+        setSuggestedProductId(payload.suggestedProductId);
+        setSelectedProductId(payload.suggestedProductId);
+        setStatusMessage("La sugerencia AI ya se aplico como coincidencia propuesta.");
+      } else {
+        setStatusMessage("La AI no encontro una coincidencia con confianza suficiente.");
+      }
+
+      setAiConfidence(payload.confidence ?? null);
+      setAiReasoning(payload.reasoning ?? null);
+    });
+  }
+
   return (
     <div className="result-shell">
       <div className="scan-nav">
@@ -302,6 +357,23 @@ export function ScanResult({ scanId }: { scanId: string }) {
                 Barcode detectado: <strong>{scan.barcode_value}</strong>, pero aun no existe una
                 coincidencia exacta en el catalogo.
               </p>
+            ) : null}
+
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={handleAISuggestion}
+              disabled={isPending || !imageUrl}
+            >
+              {isPending ? "Analizando..." : "Intentar sugerencia AI"}
+            </button>
+
+            {aiReasoning ? (
+              <div className="status-note">
+                <strong>AI</strong>
+                <div>{aiConfidence ? `Confianza: ${aiConfidence}` : null}</div>
+                <div>{aiReasoning}</div>
+              </div>
             ) : null}
 
             <button
