@@ -4,16 +4,26 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-function isAuthorized(request: NextRequest) {
-  const expectedKey = process.env.ADMIN_REVIEW_KEY;
-  const providedKey = request.headers.get("x-admin-key");
+function getAdminAuthorization(request: NextRequest) {
+  const expectedKey = process.env.ADMIN_REVIEW_KEY?.trim();
+  const providedKey = request.headers.get("x-admin-key")?.trim();
 
-  return Boolean(expectedKey && providedKey && providedKey === expectedKey);
+  if (!expectedKey) {
+    return { ok: false, status: 503, error: "ADMIN_REVIEW_KEY is not configured on the server." };
+  }
+
+  if (!providedKey || providedKey !== expectedKey) {
+    return { ok: false, status: 401, error: "Unauthorized admin request." };
+  }
+
+  return { ok: true as const };
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized admin request." }, { status: 401 });
+  const auth = getAdminAuthorization(request);
+
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
