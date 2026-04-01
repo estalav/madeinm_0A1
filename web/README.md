@@ -20,6 +20,8 @@ NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-5-mini
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ADMIN_REVIEW_KEY=your-private-admin-review-key
 ```
 
 You can copy from [`web/.env.example`](/Users/estalav/Documents/CODEX_Projects_Estala.com/web/.env.example).
@@ -27,6 +29,7 @@ You can copy from [`web/.env.example`](/Users/estalav/Documents/CODEX_Projects_E
 `OPENAI_API_KEY` is optional. Without it, the app still works, but the AI suggestion button on scan results stays disabled and the page explains how to enable it.
 `OPENAI_MODEL` is optional and defaults to `gpt-5-mini`.
 `SUPABASE_SERVICE_ROLE_KEY` is required only if you want the app to create AI-suggested `draft` products from the server side.
+`ADMIN_REVIEW_KEY` is required if you want to use the admin review screen at `/admin`.
 
 Then run:
 
@@ -58,6 +61,29 @@ Today the scan experience works like this:
 - optionally ask the AI route for a suggested catalog match
 
 The AI route is intentionally advisory. It suggests a candidate and reasoning, but the user still confirms the final match.
+
+## Admin Review
+
+The app now includes an admin review screen at:
+
+- `/admin`
+
+It is designed for reviewing draft products created by the AI-assisted scan flow.
+
+Admin capabilities:
+
+- load draft products
+- inspect aliases and current origin record
+- approve and activate a draft
+- archive a draft
+- add a manual review note and trust rationale
+
+The admin routes require:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ADMIN_REVIEW_KEY`
+
+The admin key is entered in the browser and sent only to the server routes that power the review screen.
 
 ## Next Steps
 

@@ -484,6 +484,16 @@ select {
   color: var(--foreground);
 }
 
+.field textarea,
+.field select {
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(49, 95, 61, 0.2);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--foreground);
+}
+
 .field input[type="file"] {
   padding: 12px;
 }
@@ -636,6 +646,48 @@ select {
   margin-bottom: 10px;
 }
 
+.admin-shell {
+  display: grid;
+  gap: 20px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+}
+
+.admin-draft-button {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-draft-active {
+  border-color: rgba(49, 95, 61, 0.4);
+  box-shadow: 0 10px 24px rgba(75, 53, 20, 0.08);
+}
+
+.admin-aliases {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-aliases span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(201, 137, 58, 0.12);
+  color: #734300;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 @media (max-width: 920px) {
   .hero,
   .future-section,
@@ -643,6 +695,7 @@ select {
   .steps-grid,
   .scan-hero,
   .scan-grid,
+  .admin-grid,
   .result-grid,
   .result-meta,
   .trust-facts {
