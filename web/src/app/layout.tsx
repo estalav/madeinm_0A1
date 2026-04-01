@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import packageJson from "../../package.json";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "MadeinM",
   description: "Hecho Aqui pilot app for discovering Mexican products.",
 };
+
+const appVersion = packageJson.version;
 
 export default function RootLayout({
   children,
@@ -13,7 +16,36 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es-MX">
-      <body>{children}</body>
+      <body>
+        <div className="site-shell">
+          <div className="site-main">{children}</div>
+
+          <footer className="site-footer">
+            <div className="site-footer-inner">
+              <div>
+                <strong>MadeinM</strong>
+                <p>
+                  Original application code, brand presentation, review workflows, and curated
+                  content are proprietary to Estala unless otherwise noted.
+                </p>
+              </div>
+
+              <div>
+                <strong>IP Notice</strong>
+                <p>
+                  Third-party trademarks, market data, retailer names, and external product
+                  references remain the property of their respective owners.
+                </p>
+              </div>
+
+              <div>
+                <strong>Version</strong>
+                <p>Pilot v{appVersion}</p>
+              </div>
+            </div>
+          </footer>
+        </div>
+      </body>
     </html>
   );
 }

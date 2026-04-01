@@ -1,5 +1,5 @@
 :root {
-  --background: #f4ebdc;
+  --background: #0d2340;
   --foreground: #1d2a1f;
   --surface: rgba(255, 250, 242, 0.85);
   --surface-solid: #fffaf2;
@@ -28,9 +28,9 @@ body {
   min-height: 100%;
   color: var(--foreground);
   background:
-    radial-gradient(circle at top left, rgba(201, 137, 58, 0.16), transparent 28%),
-    radial-gradient(circle at top right, rgba(49, 95, 61, 0.16), transparent 24%),
-    linear-gradient(180deg, #f2e7d2 0%, #fff8ef 42%, #edf4e9 100%);
+    radial-gradient(circle at top left, rgba(201, 137, 58, 0.18), transparent 24%),
+    radial-gradient(circle at top right, rgba(84, 160, 255, 0.2), transparent 20%),
+    linear-gradient(180deg, #09182d 0%, #0d2340 48%, #112b4d 100%);
   font-family: Georgia, "Times New Roman", serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -60,6 +60,49 @@ select {
   padding: 28px 0 64px;
   display: grid;
   gap: 28px;
+}
+
+.site-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-main {
+  flex: 1;
+}
+
+.site-footer {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 28px;
+  padding: 0;
+}
+
+.site-footer-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(180px, 0.6fr);
+  gap: 18px;
+  padding: 22px 24px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 22, 41, 0.82);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.2);
+  color: rgba(244, 238, 225, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+.site-footer-inner strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #f4e7c8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+}
+
+.site-footer-inner p {
+  color: rgba(244, 238, 225, 0.78);
+  line-height: 1.6;
 }
 
 .hero,
@@ -698,6 +741,7 @@ select {
   .admin-grid,
   .result-grid,
   .result-meta,
+  .site-footer-inner,
   .trust-facts {
     grid-template-columns: 1fr;
   }

@@ -45,6 +45,7 @@ function formatTimestamp(value: string) {
 export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
   const [adminKey, setAdminKey] = useState("");
   const [drafts, setDrafts] = useState<DraftRow[]>(initialDrafts);
+  const [searchTerm, setSearchTerm] = useState("");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(initialDrafts[0]?.id ?? null);
@@ -63,9 +64,26 @@ export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
     }
   }, []);
 
+  const filteredDrafts = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    if (!query) {
+      return drafts;
+    }
+
+    return drafts.filter((draft) => {
+      const aliasText = draft.product_aliases?.map(({ alias }) => alias).join(" ").toLowerCase() ?? "";
+      const haystack = [draft.name, draft.category, draft.subcategory ?? "", draft.brand_name ?? "", aliasText]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [drafts, searchTerm]);
+
   const selectedDraft = useMemo(
-    () => drafts.find((draft) => draft.id === selectedDraftId) ?? null,
-    [drafts, selectedDraftId],
+    () => filteredDrafts.find((draft) => draft.id === selectedDraftId) ?? drafts.find((draft) => draft.id === selectedDraftId) ?? null,
+    [drafts, filteredDrafts, selectedDraftId],
   );
 
   useEffect(() => {
@@ -111,6 +129,7 @@ export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
 
       setDrafts(payload.drafts ?? []);
       setSelectedDraftId(payload.drafts?.[0]?.id ?? null);
+      setSearchTerm("");
       setStatusMessage(`Loaded ${payload.drafts?.length ?? 0} draft products.`);
     });
   }
@@ -216,6 +235,16 @@ export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
             >
               {isPending ? "Loading..." : "Load draft products"}
             </button>
+
+            <label className="field">
+              <span>Search drafts</span>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search by name, alias, or category"
+              />
+            </label>
           </div>
 
           {statusMessage ? <p className="status-ok">{statusMessage}</p> : null}
@@ -227,8 +256,13 @@ export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
                 <strong>No drafts available</strong>
                 <span>Once AI creates new draft products, they will show up here.</span>
               </div>
+            ) : filteredDrafts.length === 0 ? (
+              <div className="recent-item">
+                <strong>No drafts match this search</strong>
+                <span>Try a broader name, alias, or category term.</span>
+              </div>
             ) : (
-              drafts.map((draft) => (
+              filteredDrafts.map((draft) => (
                 <button
                   key={draft.id}
                   type="button"
