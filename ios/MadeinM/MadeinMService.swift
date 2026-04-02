@@ -92,6 +92,40 @@ struct CatalogProduct: Identifiable, Decodable, Hashable {
     let product_images: [ProductImageReference]?
     let origins: [ProductOrigin]?
 
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case category
+        case subcategory
+        case brand_name
+        case description
+        case default_image_url
+        case product_aliases
+        case product_images
+        case origins
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        category = try container.decode(String.self, forKey: .category)
+        subcategory = try container.decodeIfPresent(String.self, forKey: .subcategory)
+        brand_name = try container.decodeIfPresent(String.self, forKey: .brand_name)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        default_image_url = try container.decodeIfPresent(String.self, forKey: .default_image_url)
+        product_aliases = try container.decodeIfPresent([ProductAlias].self, forKey: .product_aliases)
+        product_images = try container.decodeIfPresent([ProductImageReference].self, forKey: .product_images)
+
+        if let originArray = try? container.decode([ProductOrigin].self, forKey: .origins) {
+            origins = originArray
+        } else if let originObject = try? container.decode(ProductOrigin.self, forKey: .origins) {
+            origins = [originObject]
+        } else {
+            origins = nil
+        }
+    }
+
     var aliases: [String] {
         product_aliases?.map(\.alias) ?? []
     }
