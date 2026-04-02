@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import packageJson from "../../package.json";
 import "./globals.css";
 
@@ -18,6 +19,21 @@ export default function RootLayout({
     <html lang="es-MX">
       <body>
         <div className="site-shell">
+          <header className="site-header">
+            <div className="site-header-inner">
+              <Link className="site-brand" href="/">
+                MadeinM
+              </Link>
+
+              <nav className="site-menu" aria-label="Primary">
+                <Link href="/">Home</Link>
+                <Link href="/catalog">Catalog</Link>
+                <Link href="/scan">Scan</Link>
+                <Link href="/admin">Admin</Link>
+              </nav>
+            </div>
+          </header>
+
           <div className="site-main">{children}</div>
 
           <footer className="site-footer">

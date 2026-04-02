@@ -68,6 +68,53 @@ select {
   flex-direction: column;
 }
 
+.site-header {
+  width: min(1180px, calc(100% - 32px));
+  margin: 20px auto 0;
+}
+
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 22, 41, 0.82);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(10px);
+}
+
+.site-brand {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #f4e7c8;
+}
+
+.site-menu {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.site-menu a {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: rgba(244, 238, 225, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.site-menu a:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .site-main {
   flex: 1;
 }
@@ -853,6 +900,11 @@ select {
   .site-footer-inner,
   .trust-facts {
     grid-template-columns: 1fr;
+  }
+
+  .site-header-inner {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .hero h1,
