@@ -17,13 +17,22 @@ type CatalogProduct = {
     is_primary: boolean | null;
     source_type: string | null;
   }>;
-  origins?: Array<{
-    origin_status: string;
-    confidence_level: string;
-    summary_reason: string | null;
-    country_code: string | null;
-    state_name: string | null;
-  }>;
+  origins?:
+    | Array<{
+        origin_status: string;
+        confidence_level: string;
+        summary_reason: string | null;
+        country_code: string | null;
+        state_name: string | null;
+      }>
+    | {
+      origin_status: string;
+      confidence_level: string;
+      summary_reason: string | null;
+      country_code: string | null;
+      state_name: string | null;
+    }
+    | null;
 };
 
 type MapMarker = {
@@ -84,6 +93,18 @@ function getReferenceImages(product: CatalogProduct) {
   return [];
 }
 
+function getPrimaryOrigin(product: CatalogProduct) {
+  if (!product.origins) {
+    return null;
+  }
+
+  if (Array.isArray(product.origins)) {
+    return product.origins[0] ?? null;
+  }
+
+  return product.origins;
+}
+
 export default async function CatalogPage() {
   const supabase = createSupabaseServerClient();
 
@@ -101,7 +122,7 @@ export default async function CatalogPage() {
   }));
 
   const originMarkers = products.reduce<MapMarker[]>((markers, product) => {
-    const origin = product.origins?.[0];
+    const origin = getPrimaryOrigin(product);
     const stateName = origin?.state_name;
 
     if (!stateName) {
@@ -134,7 +155,7 @@ export default async function CatalogPage() {
     return markers;
   }, []);
 
-  const pendingOrigins = products.filter((product) => !product.origins?.[0]?.state_name);
+  const pendingOrigins = products.filter((product) => !getPrimaryOrigin(product)?.state_name);
 
   return (
     <main className="scan-page">
@@ -233,7 +254,7 @@ export default async function CatalogPage() {
           ) : (
             <div className="catalog-gallery">
               {products.map((product) => {
-                const origin = product.origins?.[0];
+                const origin = getPrimaryOrigin(product);
                 const aliases = product.product_aliases?.map(({ alias }) => alias) ?? [];
                 const images = product.product_images ?? [];
 
