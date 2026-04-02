@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   const { data: drafts, error } = await supabase
     .from("products")
     .select(
-      "id, name, category, subcategory, brand_name, description, status, created_at, product_aliases(alias), origins(id, origin_status, confidence_level, summary_reason, country_code)",
+      "id, name, category, subcategory, brand_name, description, status, created_at, product_aliases(alias), product_images(id, image_url, is_primary, source_type), origins(id, origin_status, confidence_level, summary_reason, country_code)",
     )
     .eq("status", "draft")
     .order("created_at", { ascending: false });

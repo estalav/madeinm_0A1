@@ -947,6 +947,19 @@ select {
   gap: 12px;
 }
 
+.field-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.field-inline input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
 @media (max-width: 920px) {
   .hero,
   .future-section,

@@ -12,6 +12,12 @@ type DraftRow = {
   status: string;
   created_at: string;
   product_aliases?: Array<{ alias: string }>;
+  product_images?: Array<{
+    id: string;
+    image_url: string;
+    is_primary: boolean | null;
+    source_type: string | null;
+  }>;
   origins?: Array<{
     id: string;
     origin_status: string;
@@ -20,6 +26,8 @@ type DraftRow = {
     country_code: string | null;
   }>;
 };
+
+type ProductImageRow = NonNullable<DraftRow["product_images"]>[number];
 
 type AdminConsoleProps = {
   initialDrafts: DraftRow[];
@@ -54,6 +62,8 @@ export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
   const [countryCode, setCountryCode] = useState("");
   const [summaryReason, setSummaryReason] = useState("");
   const [reviewNote, setReviewNote] = useState("");
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [setPrimaryImage, setSetPrimaryImage] = useState(true);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -97,6 +107,8 @@ export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
     setCountryCode(origin?.country_code ?? "");
     setSummaryReason(origin?.summary_reason ?? "");
     setReviewNote("");
+    setSelectedImageFile(null);
+    setSetPrimaryImage(!(selectedDraft.product_images ?? []).some((image) => image.is_primary));
   }, [selectedDraft]);
 
   async function handleLoadDrafts() {
@@ -191,6 +203,74 @@ export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
           ? `${selectedDraft.name} was approved and activated.`
           : `${selectedDraft.name} was archived.`,
       );
+    });
+  }
+
+  async function handleUploadReferenceImage() {
+    if (!selectedDraft) {
+      setStatusError("Select a draft product first.");
+      return;
+    }
+
+    if (!adminKey.trim()) {
+      setStatusError("Enter the admin review key first.");
+      return;
+    }
+
+    if (!selectedImageFile) {
+      setStatusError("Choose a reference image before uploading.");
+      return;
+    }
+
+    setStatusMessage(null);
+    setStatusError(null);
+
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append("productId", selectedDraft.id);
+      formData.append("file", selectedImageFile);
+      formData.append("setAsPrimary", String(setPrimaryImage));
+
+      const response = await fetch("/api/admin/product-images", {
+        method: "POST",
+        headers: {
+          "x-admin-key": adminKey.trim(),
+        },
+        body: formData,
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+        image?: ProductImageRow;
+      };
+
+      if (!response.ok || !payload.image) {
+        setStatusError(payload.error ?? "Could not upload the product reference image.");
+        return;
+      }
+
+      const uploadedImage = payload.image;
+
+      setDrafts((current) =>
+        current.map((draft) => {
+          if (draft.id !== selectedDraft.id) {
+            return draft;
+          }
+
+          const currentImages = draft.product_images ?? [];
+          const normalizedImages = setPrimaryImage
+            ? currentImages.map((image) => ({ ...image, is_primary: false }))
+            : currentImages;
+
+          return {
+            ...draft,
+            product_images: [...normalizedImages, uploadedImage],
+          };
+        }),
+      );
+
+      setSelectedImageFile(null);
+      setStatusMessage(`Uploaded a reference photo for ${selectedDraft.name}.`);
     });
   }
 
@@ -289,6 +369,23 @@ export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
                 <p className="scan-copy">
                   {selectedDraft.description || "No description available yet."}
                 </p>
+                <div className="catalog-gallery-strip">
+                  {(selectedDraft.product_images ?? []).length > 0 ? (
+                    (selectedDraft.product_images ?? []).map((image) => (
+                      <figure key={image.id} className="catalog-reference-shot">
+                        <img src={image.image_url} alt={`${selectedDraft.name} reference`} />
+                        <figcaption>
+                          {image.is_primary ? "Primary" : image.source_type || "Reference photo"}
+                        </figcaption>
+                      </figure>
+                    ))
+                  ) : (
+                    <div className="catalog-empty-shot">
+                      <strong>No reference photo yet</strong>
+                      <span>Add one here so future recognition has a curated visual example.</span>
+                    </div>
+                  )}
+                </div>
                 <div className="trust-facts">
                   <span>{selectedDraft.category}</span>
                   <span>{selectedDraft.subcategory || "No subcategory"}</span>
@@ -302,6 +399,33 @@ export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
               </div>
 
               <div className="scan-form">
+                <label className="field">
+                  <span>Reference image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setSelectedImageFile(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+
+                <label className="field field-inline">
+                  <input
+                    type="checkbox"
+                    checked={setPrimaryImage}
+                    onChange={(event) => setSetPrimaryImage(event.target.checked)}
+                  />
+                  <span>Set as primary reference image</span>
+                </label>
+
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  onClick={handleUploadReferenceImage}
+                  disabled={isPending}
+                >
+                  {isPending ? "Uploading..." : "Upload reference image"}
+                </button>
+
                 <label className="field">
                   <span>Origin status</span>
                   <select value={originStatus} onChange={(event) => setOriginStatus(event.target.value)}>
