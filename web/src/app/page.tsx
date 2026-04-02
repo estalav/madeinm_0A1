@@ -54,6 +54,9 @@ export default async function Home() {
             <Link className="button button-primary" href="/scan">
               Probar escaneo
             </Link>
+            <Link className="button button-secondary" href="/catalog">
+              Ver catalogo
+            </Link>
             <Link className="button button-secondary" href="#como-funciona">
               Como funciona
             </Link>

@@ -411,6 +411,114 @@ select {
   color: var(--green-deep);
 }
 
+.catalog-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.catalog-gallery {
+  display: grid;
+  gap: 18px;
+}
+
+.catalog-gallery-card {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.05fr);
+  gap: 18px;
+  padding: 18px;
+  border-radius: 26px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.catalog-gallery-media {
+  display: grid;
+}
+
+.catalog-gallery-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.catalog-reference-shot,
+.catalog-empty-shot {
+  min-height: 220px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: rgba(246, 240, 228, 0.92);
+}
+
+.catalog-reference-shot {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.catalog-reference-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+}
+
+.catalog-reference-shot figcaption {
+  padding: 10px 12px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.catalog-empty-shot {
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  text-align: center;
+  gap: 10px;
+  color: var(--ink-soft);
+}
+
+.catalog-gallery-copy {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.catalog-gallery-copy h3 {
+  font-size: 1.8rem;
+  line-height: 1.04;
+}
+
+.catalog-gallery-description,
+.catalog-gallery-reason {
+  color: var(--ink-soft);
+  line-height: 1.65;
+}
+
+.catalog-gallery-reason {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(49, 95, 61, 0.08);
+}
+
+.catalog-gallery-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.catalog-gallery-meta span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--green-deep);
+}
+
 .scan-page {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
@@ -736,6 +844,7 @@ select {
   .future-section,
   .mission-band,
   .steps-grid,
+  .catalog-gallery-card,
   .scan-hero,
   .scan-grid,
   .admin-grid,
@@ -784,5 +893,13 @@ select {
 
   .button {
     width: 100%;
+  }
+
+  .catalog-header {
+    align-items: stretch;
+  }
+
+  .catalog-gallery-strip {
+    grid-template-columns: 1fr;
   }
 }
