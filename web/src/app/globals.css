@@ -471,6 +471,67 @@ select {
   gap: 18px;
 }
 
+.origin-map-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 18px;
+}
+
+.origin-map-canvas {
+  position: relative;
+  min-height: 420px;
+  border-radius: 28px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 24% 30%, rgba(84, 160, 255, 0.18), transparent 18%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(243, 234, 217, 0.92));
+  overflow: hidden;
+}
+
+.origin-map-shape {
+  position: absolute;
+  inset: 7% 10%;
+  border-radius: 48% 36% 44% 34% / 34% 48% 28% 44%;
+  background:
+    linear-gradient(180deg, rgba(49, 95, 61, 0.16), rgba(49, 95, 61, 0.22)),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.7), transparent);
+  clip-path: polygon(8% 26%, 18% 17%, 35% 15%, 49% 23%, 66% 22%, 79% 30%, 88% 45%, 82% 60%, 68% 69%, 64% 84%, 49% 90%, 36% 86%, 30% 73%, 19% 68%, 14% 52%, 6% 41%);
+}
+
+.origin-map-marker {
+  position: absolute;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  transform: translate(-50%, -50%);
+}
+
+.origin-map-marker span {
+  min-width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff8ef;
+  font-weight: 700;
+  box-shadow: 0 10px 22px rgba(174, 44, 44, 0.18);
+}
+
+.origin-map-marker strong {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(8, 22, 41, 0.84);
+  color: rgba(255, 248, 237, 0.94);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.origin-map-legend h3 {
+  margin-bottom: 12px;
+  font-size: 1.4rem;
+}
+
 .catalog-gallery-card {
   display: grid;
   grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.05fr);
@@ -892,6 +953,7 @@ select {
   .mission-band,
   .steps-grid,
   .catalog-gallery-card,
+  .origin-map-shell,
   .scan-hero,
   .scan-grid,
   .admin-grid,

@@ -22,7 +22,17 @@ type CatalogProduct = {
     confidence_level: string;
     summary_reason: string | null;
     country_code: string | null;
+    state_name: string | null;
   }>;
+};
+
+type MapMarker = {
+  label: string;
+  stateName: string;
+  top: string;
+  left: string;
+  count: number;
+  products: string[];
 };
 
 const statusLabels: Record<string, string> = {
@@ -38,6 +48,14 @@ const confidenceLabels: Record<string, string> = {
   alta: "Alta confianza",
   media: "Confianza media",
   baja: "Baja confianza",
+};
+
+const mexicoStatePositions: Record<string, { top: string; left: string; label?: string }> = {
+  "Estado de Mexico": { top: "52%", left: "48%", label: "Edo. Mex." },
+  Colima: { top: "56%", left: "34%" },
+  Michoacan: { top: "54%", left: "40%" },
+  Veracruz: { top: "47%", left: "62%" },
+  Chiapas: { top: "66%", left: "74%" },
 };
 
 function getReferenceImages(product: CatalogProduct) {
@@ -72,7 +90,7 @@ export default async function CatalogPage() {
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id, name, category, subcategory, brand_name, description, default_image_url, product_aliases(alias), product_images(image_url, is_primary, source_type), origins(origin_status, confidence_level, summary_reason, country_code)",
+      "id, name, category, subcategory, brand_name, description, default_image_url, product_aliases(alias), product_images(image_url, is_primary, source_type), origins(origin_status, confidence_level, summary_reason, country_code, state_name)",
     )
     .eq("status", "active")
     .order("name", { ascending: true });
@@ -81,6 +99,42 @@ export default async function CatalogPage() {
     ...product,
     product_images: getReferenceImages(product),
   }));
+
+  const originMarkers = products.reduce<MapMarker[]>((markers, product) => {
+    const origin = product.origins?.[0];
+    const stateName = origin?.state_name;
+
+    if (!stateName) {
+      return markers;
+    }
+
+    const position = mexicoStatePositions[stateName];
+
+    if (!position) {
+      return markers;
+    }
+
+    const existing = markers.find((marker) => marker.stateName === stateName);
+
+    if (existing) {
+      existing.count += 1;
+      existing.products.push(product.name);
+      return markers;
+    }
+
+    markers.push({
+      label: position.label ?? stateName,
+      stateName,
+      top: position.top,
+      left: position.left,
+      count: 1,
+      products: [product.name],
+    });
+
+    return markers;
+  }, []);
+
+  const pendingOrigins = products.filter((product) => !product.origins?.[0]?.state_name);
 
   return (
     <main className="scan-page">
@@ -105,6 +159,56 @@ export default async function CatalogPage() {
             <span>Curated names and aliases</span>
             <span>Origin and confidence labels</span>
             <span>Reference photos stored for each product</span>
+          </div>
+        </section>
+
+        <section className="scan-card">
+          <div className="catalog-header">
+            <div>
+              <p className="eyebrow">Origin map</p>
+              <h2>Where the pilot catalog currently traces product origin</h2>
+            </div>
+
+            <Link className="button button-secondary" href="/admin">
+              Review drafts
+            </Link>
+          </div>
+
+          <div className="origin-map-shell">
+            <div className="origin-map-canvas">
+              <div className="origin-map-shape" aria-hidden="true" />
+
+              {originMarkers.map((marker) => (
+                <div
+                  key={marker.stateName}
+                  className="origin-map-marker"
+                  style={{ top: marker.top, left: marker.left }}
+                  title={`${marker.label}: ${marker.products.join(", ")}`}
+                >
+                  <span>{marker.count}</span>
+                  <strong>{marker.label}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="origin-map-legend">
+              <h3>Mapped origins</h3>
+              <div className="recent-list">
+                {originMarkers.map((marker) => (
+                  <div key={marker.stateName} className="recent-item">
+                    <strong>{marker.label}</strong>
+                    <span>{marker.products.join(", ")}</span>
+                  </div>
+                ))}
+
+                {pendingOrigins.length > 0 ? (
+                  <div className="recent-item">
+                    <strong>Pending origin confirmation</strong>
+                    <span>{pendingOrigins.map((product) => product.name).join(", ")}</span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </div>
         </section>
 
@@ -181,6 +285,7 @@ export default async function CatalogPage() {
                       <div className="catalog-gallery-meta">
                         <span>{images.length} photo{images.length === 1 ? "" : "s"}</span>
                         <span>{product.brand_name || "No brand"}</span>
+                        <span>{origin?.state_name || "State pending"}</span>
                         <span>{origin?.country_code || "Country pending"}</span>
                       </div>
 
