@@ -15,6 +15,9 @@ type RecognitionResponse = {
   confidence: "alta" | "media" | "baja";
   reasoning: string;
   visualGuess: string | null;
+  originAssessment: "confirmado_mexicano" | "probable_mexicano" | "desconocido";
+  originExplanation: string;
+  evidenceNeeded: string[];
   draftProduct: {
     name: string;
     brandName: string | null;
@@ -109,11 +112,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { imageUrl, imageDataUrl, barcodeValue, candidates } = (await request.json()) as {
+  const { imageUrl, imageDataUrl, barcodeValue, candidates, marketContext, vendorOriginHint, observedTextHint } = (await request.json()) as {
     imageUrl?: string;
     imageDataUrl?: string;
     barcodeValue?: string | null;
     candidates?: Candidate[];
+    marketContext?: string | null;
+    vendorOriginHint?: string | null;
+    observedTextHint?: string | null;
   };
 
   if (!imageUrl && !imageDataUrl) {
@@ -168,21 +174,40 @@ export async function POST(request: NextRequest) {
     .map((candidate) => `- ${candidate.name} (${candidate.category}) [${candidate.id}]`)
     .join("\n");
 
+  const contextLines = [
+    marketContext?.trim() ? `Market context: ${marketContext.trim()}` : "Market context: none provided.",
+    vendorOriginHint?.trim()
+      ? `Vendor or seller origin hint: ${vendorOriginHint.trim()}`
+      : "Vendor or seller origin hint: none provided.",
+    observedTextHint?.trim()
+      ? `Observed nearby text, sticker, sign, box, or label text: ${observedTextHint.trim()}`
+      : "Observed nearby text, sticker, sign, box, or label text: none provided.",
+  ].join("\n");
+
   const prompt = [
     "Analyze this uploaded grocery photo and suggest the single best product from the catalog below.",
     "If the product is not present in the catalog, return null for suggestedProductId and explain why.",
     "Always include visualGuess with the most likely common product name you see, even if it is outside the catalog.",
-    "Do not invent origin facts. Focus only on visual candidate matching and visible produce cues.",
+    "Separate product identification from origin inference.",
+    "The photo may help identify the product, but it usually cannot prove country of origin on its own.",
+    "Do not invent origin facts. Use the visual scene only as one signal.",
+    "For origin, combine visible clues with the provided market, vendor, and text context.",
+    "Use this 3-level origin result only: confirmado_mexicano, probable_mexicano, desconocido.",
+    "Only use confirmado_mexicano if the evidence is explicit, such as text saying Mexico, a Mexican state, or a trusted vendor hint.",
+    "Use probable_mexicano when context strongly suggests Mexican/local origin but there is not explicit proof.",
+    "Use desconocido when the image/context is not enough to support a Mexican-origin claim.",
     barcodeValue && /^\d{4,5}$/.test(barcodeValue)
       ? `Visible or manual produce PLU code: ${barcodeValue}`
       : barcodeValue
         ? `Visible or manual barcode value: ${barcodeValue}`
         : "No barcode value provided.",
+    contextLines,
     candidates?.length ? "Catalog candidates:" : "There are currently no reliable catalog candidates for matching.",
     catalogText || "(empty catalog candidate list)",
     "If there is no catalog match, also propose a conservative draft product candidate suitable for admin review.",
     "For produce, prefer category=produce and a simple subcategory like fruit, vegetable, herb, citrus, chile, or unknown.",
-    'Respond with strict JSON only: {"suggestedProductId": string | null, "confidence": "alta" | "media" | "baja", "reasoning": string, "visualGuess": string | null, "draftProduct": {"name": string, "brandName": string | null, "category": string, "subcategory": string | null, "aliases": string[] } | null}',
+    "Always include a short originExplanation and a small evidenceNeeded array naming the next evidence that would improve trust, such as market location, box label photo, sticker text, or vendor origin note.",
+    'Respond with strict JSON only: {"suggestedProductId": string | null, "confidence": "alta" | "media" | "baja", "reasoning": string, "visualGuess": string | null, "originAssessment": "confirmado_mexicano" | "probable_mexicano" | "desconocido", "originExplanation": string, "evidenceNeeded": string[], "draftProduct": {"name": string, "brandName": string | null, "category": string, "subcategory": string | null, "aliases": string[] } | null}',
   ].join("\n\n");
 
   const llmResponse = await fetch("https://api.openai.com/v1/responses", {
@@ -238,6 +263,16 @@ export async function POST(request: NextRequest) {
       confidence: parsed.confidence ?? "baja",
       reasoning: parsed.reasoning ?? "No reasoning was returned.",
       visualGuess: parsed.visualGuess ?? null,
+      originAssessment:
+        parsed.originAssessment === "confirmado_mexicano" ||
+        parsed.originAssessment === "probable_mexicano" ||
+        parsed.originAssessment === "desconocido"
+          ? parsed.originAssessment
+          : "desconocido",
+      originExplanation: parsed.originExplanation ?? "Origin cannot be confirmed from the current evidence alone.",
+      evidenceNeeded: Array.isArray(parsed.evidenceNeeded)
+        ? parsed.evidenceNeeded.filter((item): item is string => typeof item === "string")
+        : [],
       draftProduct: parsed.draftProduct
         ? {
             name: parsed.draftProduct.name ?? parsed.visualGuess ?? "Producto detectado por AI",
@@ -264,13 +299,19 @@ export async function POST(request: NextRequest) {
       estimatedCatalogCandidates: candidates?.length ?? 0,
       barcodeValue: barcodeValue ?? null,
       visualGuess: result.visualGuess,
-      matchedProductName:
+        matchedProductName:
         candidates?.find((candidate) => candidate.id === result.suggestedProductId)?.name ?? null,
       reasoning: result.reasoning,
       metadata: {
         usedImageUrl: Boolean(imageUrl),
         usedImageDataUrl: Boolean(imageDataUrl),
         draftSuggested: Boolean(result.draftProduct),
+        marketContext: marketContext?.trim() || null,
+        vendorOriginHint: vendorOriginHint?.trim() || null,
+        observedTextHint: observedTextHint?.trim() || null,
+        originAssessment: result.originAssessment,
+        originExplanation: result.originExplanation,
+        evidenceNeeded: result.evidenceNeeded,
       },
     });
 

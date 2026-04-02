@@ -27,6 +27,8 @@ type DraftProductCandidate = {
   aliases: string[];
 };
 
+type OriginAssessment = "confirmado_mexicano" | "probable_mexicano" | "desconocido";
+
 type BarcodeDetectorResult = {
   rawValue?: string;
 };
@@ -85,11 +87,28 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
   const [guestGuess, setGuestGuess] = useState<string | null>(null);
   const [guestReasoning, setGuestReasoning] = useState<string | null>(null);
   const [guestConfidence, setGuestConfidence] = useState<string | null>(null);
+  const [guestOriginAssessment, setGuestOriginAssessment] = useState<OriginAssessment | null>(null);
+  const [guestOriginExplanation, setGuestOriginExplanation] = useState<string | null>(null);
+  const [guestEvidenceNeeded, setGuestEvidenceNeeded] = useState<string[]>([]);
   const [guestCatalogMatch, setGuestCatalogMatch] = useState<string | null>(null);
   const [guestDraftCandidate, setGuestDraftCandidate] = useState<DraftProductCandidate | null>(null);
   const [draftMessage, setDraftMessage] = useState<string | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [creatingDraft, setCreatingDraft] = useState(false);
+  const [marketContext, setMarketContext] = useState("");
+  const [vendorOriginHint, setVendorOriginHint] = useState("");
+  const [observedTextHint, setObservedTextHint] = useState("");
+
+  function originAssessmentLabel(value: OriginAssessment | null) {
+    switch (value) {
+      case "confirmado_mexicano":
+        return "Confirmed Mexican";
+      case "probable_mexicano":
+        return "Likely Mexican";
+      default:
+        return "Unknown origin";
+    }
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -313,6 +332,9 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
     setGuestGuess(null);
     setGuestReasoning(null);
     setGuestConfidence(null);
+    setGuestOriginAssessment(null);
+    setGuestOriginExplanation(null);
+    setGuestEvidenceNeeded([]);
     setGuestCatalogMatch(null);
     setGuestDraftCandidate(null);
     setDraftMessage(null);
@@ -339,6 +361,9 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
             imageDataUrl,
             barcodeValue: barcodeValue || null,
             candidates: (data ?? []) as ProductCandidate[],
+            marketContext: marketContext || null,
+            vendorOriginHint: vendorOriginHint || null,
+            observedTextHint: observedTextHint || null,
           }),
         });
 
@@ -348,6 +373,9 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
           confidence?: string;
           reasoning?: string;
           visualGuess?: string | null;
+          originAssessment?: OriginAssessment;
+          originExplanation?: string;
+          evidenceNeeded?: string[];
           draftProduct?: DraftProductCandidate | null;
         };
 
@@ -362,6 +390,9 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
         setGuestGuess(payload.visualGuess ?? null);
         setGuestReasoning(payload.reasoning ?? null);
         setGuestConfidence(payload.confidence ?? null);
+        setGuestOriginAssessment(payload.originAssessment ?? "desconocido");
+        setGuestOriginExplanation(payload.originExplanation ?? null);
+        setGuestEvidenceNeeded(payload.evidenceNeeded ?? []);
         setGuestCatalogMatch(matchedProduct?.name ?? null);
         setGuestDraftCandidate(payload.draftProduct ?? null);
 
@@ -567,6 +598,36 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
                 />
               </label>
 
+              <label className="field">
+                <span>Contexto del mercado o ubicacion</span>
+                <input
+                  type="text"
+                  placeholder="Ejemplo: Central de Abasto CDMX o mercado de Guadalajara"
+                  value={marketContext}
+                  onChange={(event) => setMarketContext(event.target.value)}
+                />
+              </label>
+
+              <label className="field">
+                <span>Pista del vendedor u origen</span>
+                <input
+                  type="text"
+                  placeholder="Ejemplo: vendedor dice Puebla o producto de Mexico"
+                  value={vendorOriginHint}
+                  onChange={(event) => setVendorOriginHint(event.target.value)}
+                />
+              </label>
+
+              <label className="field">
+                <span>Texto visible en caja, letrero o etiqueta</span>
+                <textarea
+                  rows={4}
+                  placeholder="Ejemplo: Producto de Mexico, Chiapas, nombre del proveedor o marca de caja"
+                  value={observedTextHint}
+                  onChange={(event) => setObservedTextHint(event.target.value)}
+                />
+              </label>
+
               <button className="button button-primary" type="submit" disabled={loadingUpload}>
                 {loadingUpload ? "Analizando..." : "Probar como invitado"}
               </button>
@@ -594,7 +655,16 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
                 <p className="trust-confidence">
                   {guestConfidence ? `Confianza ${guestConfidence}` : "Sin confianza calculada"}
                 </p>
+                <p className="trust-status">{originAssessmentLabel(guestOriginAssessment)}</p>
+                {guestOriginExplanation ? <p className="scan-copy">{guestOriginExplanation}</p> : null}
                 {guestReasoning ? <p className="scan-copy">{guestReasoning}</p> : null}
+                {guestEvidenceNeeded.length > 0 ? (
+                  <div className="admin-aliases">
+                    {guestEvidenceNeeded.map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
+                  </div>
+                ) : null}
                 {!guestCatalogMatch && guestDraftCandidate ? (
                   <>
                     <button
