@@ -66,6 +66,37 @@ function fileToDataUrl(file: File) {
   });
 }
 
+async function compressImageForRecognition(file: File) {
+  const dataUrl = await fileToDataUrl(file);
+
+  return new Promise<string>((resolve, reject) => {
+    const image = new Image();
+
+    image.onload = () => {
+      const maxDimension = 1400;
+      const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+      const targetWidth = Math.max(1, Math.round(image.width * scale));
+      const targetHeight = Math.max(1, Math.round(image.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        reject(new Error("We could not prepare this image for recognition."));
+        return;
+      }
+
+      context.drawImage(image, 0, 0, targetWidth, targetHeight);
+      resolve(canvas.toDataURL("image/jpeg", 0.76));
+    };
+
+    image.onerror = () => reject(new Error("We could not prepare this image for recognition."));
+    image.src = dataUrl;
+  });
+}
+
 export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?: boolean }) {
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
@@ -353,7 +384,7 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
           throw new Error(error.message);
         }
 
-        const imageDataUrl = await fileToDataUrl(selectedFile);
+        const imageDataUrl = await compressImageForRecognition(selectedFile);
         const response = await fetch("/api/recognize", {
           method: "POST",
           headers: {
@@ -369,7 +400,8 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
           }),
         });
 
-        const payload = (await response.json()) as {
+        const rawText = await response.text();
+        const payload = (rawText ? JSON.parse(rawText) : {}) as {
           error?: string;
           suggestedProductId?: string | null;
           confidence?: string;
@@ -414,6 +446,11 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
           );
         }
       } catch (error) {
+        if (error instanceof SyntaxError) {
+          setUploadError("The server returned a non-JSON error, likely because the image was too large. Try a closer crop or smaller photo.");
+          return;
+        }
+
         setUploadError(error instanceof Error ? error.message : "Guest recognition failed.");
       } finally {
         setLoadingUpload(false);
