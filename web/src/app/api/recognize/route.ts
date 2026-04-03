@@ -15,6 +15,7 @@ type RecognitionResponse = {
   confidence: "alta" | "media" | "baja";
   reasoning: string;
   visualGuess: string | null;
+  detectedText: string[];
   originAssessment: "confirmado_mexicano" | "probable_mexicano" | "desconocido";
   originExplanation: string;
   evidenceNeeded: string[];
@@ -188,6 +189,8 @@ export async function POST(request: NextRequest) {
     "Analyze this uploaded grocery photo and suggest the single best product from the catalog below.",
     "If the product is not present in the catalog, return null for suggestedProductId and explain why.",
     "Always include visualGuess with the most likely common product name you see, even if it is outside the catalog.",
+    "Also extract any visible text from the image itself, such as stickers, labels, signs, crate marks, or handwritten notes.",
+    "Return that extracted text as a short detectedText string array. If no visible text is readable, return an empty array.",
     "Separate product identification from origin inference.",
     "The photo may help identify the product, but it usually cannot prove country of origin on its own.",
     "Do not invent origin facts. Use the visual scene only as one signal.",
@@ -207,7 +210,7 @@ export async function POST(request: NextRequest) {
     "If there is no catalog match, also propose a conservative draft product candidate suitable for admin review.",
     "For produce, prefer category=produce and a simple subcategory like fruit, vegetable, herb, citrus, chile, or unknown.",
     "Always include a short originExplanation and a small evidenceNeeded array naming the next evidence that would improve trust, such as market location, box label photo, sticker text, or vendor origin note.",
-    'Respond with strict JSON only: {"suggestedProductId": string | null, "confidence": "alta" | "media" | "baja", "reasoning": string, "visualGuess": string | null, "originAssessment": "confirmado_mexicano" | "probable_mexicano" | "desconocido", "originExplanation": string, "evidenceNeeded": string[], "draftProduct": {"name": string, "brandName": string | null, "category": string, "subcategory": string | null, "aliases": string[] } | null}',
+    'Respond with strict JSON only: {"suggestedProductId": string | null, "confidence": "alta" | "media" | "baja", "reasoning": string, "visualGuess": string | null, "detectedText": string[], "originAssessment": "confirmado_mexicano" | "probable_mexicano" | "desconocido", "originExplanation": string, "evidenceNeeded": string[], "draftProduct": {"name": string, "brandName": string | null, "category": string, "subcategory": string | null, "aliases": string[] } | null}',
   ].join("\n\n");
 
   const llmResponse = await fetch("https://api.openai.com/v1/responses", {
@@ -263,6 +266,9 @@ export async function POST(request: NextRequest) {
       confidence: parsed.confidence ?? "baja",
       reasoning: parsed.reasoning ?? "No reasoning was returned.",
       visualGuess: parsed.visualGuess ?? null,
+      detectedText: Array.isArray(parsed.detectedText)
+        ? parsed.detectedText.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        : [],
       originAssessment:
         parsed.originAssessment === "confirmado_mexicano" ||
         parsed.originAssessment === "probable_mexicano" ||
@@ -299,7 +305,7 @@ export async function POST(request: NextRequest) {
       estimatedCatalogCandidates: candidates?.length ?? 0,
       barcodeValue: barcodeValue ?? null,
       visualGuess: result.visualGuess,
-        matchedProductName:
+      matchedProductName:
         candidates?.find((candidate) => candidate.id === result.suggestedProductId)?.name ?? null,
       reasoning: result.reasoning,
       metadata: {
@@ -309,6 +315,7 @@ export async function POST(request: NextRequest) {
         marketContext: marketContext?.trim() || null,
         vendorOriginHint: vendorOriginHint?.trim() || null,
         observedTextHint: observedTextHint?.trim() || null,
+        detectedText: result.detectedText,
         originAssessment: result.originAssessment,
         originExplanation: result.originExplanation,
         evidenceNeeded: result.evidenceNeeded,

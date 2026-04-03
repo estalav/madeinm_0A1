@@ -87,6 +87,7 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
   const [guestGuess, setGuestGuess] = useState<string | null>(null);
   const [guestReasoning, setGuestReasoning] = useState<string | null>(null);
   const [guestConfidence, setGuestConfidence] = useState<string | null>(null);
+  const [guestDetectedText, setGuestDetectedText] = useState<string[]>([]);
   const [guestOriginAssessment, setGuestOriginAssessment] = useState<OriginAssessment | null>(null);
   const [guestOriginExplanation, setGuestOriginExplanation] = useState<string | null>(null);
   const [guestEvidenceNeeded, setGuestEvidenceNeeded] = useState<string[]>([]);
@@ -332,6 +333,7 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
     setGuestGuess(null);
     setGuestReasoning(null);
     setGuestConfidence(null);
+    setGuestDetectedText([]);
     setGuestOriginAssessment(null);
     setGuestOriginExplanation(null);
     setGuestEvidenceNeeded([]);
@@ -373,6 +375,7 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
           confidence?: string;
           reasoning?: string;
           visualGuess?: string | null;
+          detectedText?: string[];
           originAssessment?: OriginAssessment;
           originExplanation?: string;
           evidenceNeeded?: string[];
@@ -390,6 +393,7 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
         setGuestGuess(payload.visualGuess ?? null);
         setGuestReasoning(payload.reasoning ?? null);
         setGuestConfidence(payload.confidence ?? null);
+        setGuestDetectedText(payload.detectedText ?? []);
         setGuestOriginAssessment(payload.originAssessment ?? "desconocido");
         setGuestOriginExplanation(payload.originExplanation ?? null);
         setGuestEvidenceNeeded(payload.evidenceNeeded ?? []);
@@ -657,6 +661,19 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
                 </p>
                 <p className="trust-status">{originAssessmentLabel(guestOriginAssessment)}</p>
                 {guestOriginExplanation ? <p className="scan-copy">{guestOriginExplanation}</p> : null}
+                {guestDetectedText.length > 0 ? (
+                  <>
+                    <p className="scan-copy">
+                      Visible text detected in the image. This OCR evidence can strengthen the
+                      product match and origin confidence.
+                    </p>
+                    <div className="admin-aliases">
+                      {guestDetectedText.map((item) => (
+                        <span key={item}>{item}</span>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
                 {guestReasoning ? <p className="scan-copy">{guestReasoning}</p> : null}
                 {guestEvidenceNeeded.length > 0 ? (
                   <div className="admin-aliases">
