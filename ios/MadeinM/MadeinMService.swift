@@ -1,5 +1,6 @@
 import CoreLocation
 import Foundation
+import UIKit
 
 struct ProductSummary: Identifiable, Decodable, Hashable {
     let id: UUID
@@ -200,9 +201,52 @@ struct OriginPoint: Identifiable {
     let products: [String]
 }
 
+struct RecognizedDraftProduct: Decodable, Hashable {
+    let name: String
+    let brandName: String?
+    let category: String
+    let subcategory: String?
+    let aliases: [String]
+}
+
+struct RecognizedItem: Decodable, Hashable, Identifiable {
+    let suggestedProductId: UUID?
+    let confidence: String
+    let reasoning: String
+    let visualGuess: String?
+    let detectedText: [String]
+    let originAssessment: String
+    let originExplanation: String
+    let evidenceNeeded: [String]
+    let draftProduct: RecognizedDraftProduct?
+
+    var id: String {
+        [suggestedProductId?.uuidString, visualGuess, reasoning.prefix(32).description]
+            .compactMap { $0 }
+            .joined(separator: "::")
+    }
+
+    var originAssessmentLabel: String {
+        switch originAssessment {
+        case "confirmado_mexicano":
+            "Confirmed Mexican"
+        case "probable_mexicano":
+            "Likely Mexican"
+        default:
+            "Unknown origin"
+        }
+    }
+}
+
+struct RecognitionPayload: Decodable {
+    let detectedText: [String]
+    let items: [RecognizedItem]
+}
+
 struct MadeinMService {
     private let summaryURL = URL(string: "https://jwqxshcyhzhnphlsgnnt.supabase.co/rest/v1/product_summary?select=id,name,category,origin_status,confidence_level,calories&order=name.asc")!
     private let catalogURL = URL(string: "https://jwqxshcyhzhnphlsgnnt.supabase.co/rest/v1/products?select=id,name,category,subcategory,brand_name,description,default_image_url,product_aliases(alias),product_images(image_url,is_primary,source_type),origins(origin_status,confidence_level,summary_reason,country_code,state_name)&status=eq.active&order=name.asc")!
+    private let recognitionURL = URL(string: "https://www.estala.io/api/recognize")!
     private let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3cXhzaGN5aHpobnBobHNnbm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MjcyMzQsImV4cCI6MjA5MDUwMzIzNH0.Gfn6daa78zHZHeRA502rf-zgEDpi1CNs_xH7cKVPssI"
 
     private let stateCoordinates: [String: (shortLabel: String, coordinate: CLLocationCoordinate2D)] = [
@@ -233,6 +277,55 @@ struct MadeinMService {
         }
 
         return try JSONDecoder().decode([CatalogProduct].self, from: data)
+    }
+
+    func recognizeProducts(
+        image: UIImage,
+        candidates: [ProductSummary],
+        barcodeValue: String?,
+        marketContext: String,
+        vendorOriginHint: String,
+        observedTextHint: String
+    ) async throws -> RecognitionPayload {
+        guard let imageDataUrl = prepareRecognitionDataURL(from: image) else {
+            throw URLError(.cannotEncodeContentData)
+        }
+
+        var request = URLRequest(url: recognitionURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body = [
+            "imageDataUrl": imageDataUrl,
+            "barcodeValue": barcodeValue?.isEmpty == false ? barcodeValue : nil,
+            "candidates": candidates.map { candidate in
+                [
+                    "id": candidate.id.uuidString,
+                    "name": candidate.name,
+                    "category": candidate.category,
+                ]
+            },
+            "marketContext": marketContext.isEmpty ? nil : marketContext,
+            "vendorOriginHint": vendorOriginHint.isEmpty ? nil : vendorOriginHint,
+            "observedTextHint": observedTextHint.isEmpty ? nil : observedTextHint,
+        ] as [String: Any?]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body.compactMapValues { $0 })
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if !(200 ..< 300).contains(httpResponse.statusCode) {
+            let message = String(data: data, encoding: .utf8) ?? "Recognition failed."
+            throw NSError(domain: "MadeinMRecognition", code: httpResponse.statusCode, userInfo: [
+                NSLocalizedDescriptionKey: message
+            ])
+        }
+
+        return try JSONDecoder().decode(RecognitionPayload.self, from: data)
     }
 
     func suggestProducts(query: String, from products: [ProductSummary]) -> [ProductSummary] {
@@ -278,5 +371,22 @@ struct MadeinMService {
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         return request
+    }
+
+    private func prepareRecognitionDataURL(from image: UIImage) -> String? {
+        let maxDimension: CGFloat = 1400
+        let longestSide = max(image.size.width, image.size.height)
+        let scale = min(1, maxDimension / max(longestSide, 1))
+        let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+
+        guard let jpegData = resized.jpegData(compressionQuality: 0.76) else {
+            return nil
+        }
+
+        return "data:image/jpeg;base64,\(jpegData.base64EncodedString())"
     }
 }

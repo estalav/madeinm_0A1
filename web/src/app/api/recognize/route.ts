@@ -10,7 +10,15 @@ type Candidate = {
   category: string;
 };
 
-type RecognitionResponse = {
+type DraftProductCandidate = {
+  name: string;
+  brandName: string | null;
+  category: string;
+  subcategory: string | null;
+  aliases: string[];
+};
+
+type RecognitionItem = {
   suggestedProductId: string | null;
   confidence: "alta" | "media" | "baja";
   reasoning: string;
@@ -19,13 +27,12 @@ type RecognitionResponse = {
   originAssessment: "confirmado_mexicano" | "probable_mexicano" | "desconocido";
   originExplanation: string;
   evidenceNeeded: string[];
-  draftProduct: {
-    name: string;
-    brandName: string | null;
-    category: string;
-    subcategory: string | null;
-    aliases: string[];
-  } | null;
+  draftProduct: DraftProductCandidate | null;
+};
+
+type RecognitionResponse = {
+  detectedText: string[];
+  items: RecognitionItem[];
 };
 
 function extractTextPayload(payload: unknown) {
@@ -78,6 +85,53 @@ function extractUsage(payload: unknown) {
   };
 }
 
+function normalizeDetectedText(values: unknown) {
+  return Array.isArray(values)
+    ? values.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function normalizeDraftProduct(
+  draftProduct: Partial<DraftProductCandidate> | null | undefined,
+  fallbackGuess: string | null | undefined,
+): DraftProductCandidate | null {
+  if (!draftProduct) {
+    return null;
+  }
+
+  return {
+    name: draftProduct.name ?? fallbackGuess ?? "Producto detectado por AI",
+    brandName: draftProduct.brandName ?? null,
+    category: draftProduct.category ?? "produce",
+    subcategory: draftProduct.subcategory ?? null,
+    aliases: Array.isArray(draftProduct.aliases)
+      ? draftProduct.aliases.filter((alias): alias is string => typeof alias === "string")
+      : [],
+  };
+}
+
+function normalizeRecognitionItem(item: Partial<RecognitionItem>): RecognitionItem {
+  return {
+    suggestedProductId: item.suggestedProductId ?? null,
+    confidence: item.confidence ?? "baja",
+    reasoning: item.reasoning ?? "No reasoning was returned.",
+    visualGuess: item.visualGuess ?? null,
+    detectedText: normalizeDetectedText(item.detectedText),
+    originAssessment:
+      item.originAssessment === "confirmado_mexicano" ||
+      item.originAssessment === "probable_mexicano" ||
+      item.originAssessment === "desconocido"
+        ? item.originAssessment
+        : "desconocido",
+    originExplanation:
+      item.originExplanation ?? "Origin cannot be confirmed from the current evidence alone.",
+    evidenceNeeded: Array.isArray(item.evidenceNeeded)
+      ? item.evidenceNeeded.filter((value): value is string => typeof value === "string")
+      : [],
+    draftProduct: normalizeDraftProduct(item.draftProduct, item.visualGuess),
+  };
+}
+
 export async function GET() {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL ?? "gpt-5-mini";
@@ -113,7 +167,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { imageUrl, imageDataUrl, barcodeValue, candidates, marketContext, vendorOriginHint, observedTextHint } = (await request.json()) as {
+  const {
+    imageUrl,
+    imageDataUrl,
+    barcodeValue,
+    candidates,
+    marketContext,
+    vendorOriginHint,
+    observedTextHint,
+  } = (await request.json()) as {
     imageUrl?: string;
     imageDataUrl?: string;
     barcodeValue?: string | null;
@@ -186,11 +248,14 @@ export async function POST(request: NextRequest) {
   ].join("\n");
 
   const prompt = [
-    "Analyze this uploaded grocery photo and suggest the single best product from the catalog below.",
-    "If the product is not present in the catalog, return null for suggestedProductId and explain why.",
+    "Analyze this uploaded grocery photo and detect the distinct grocery or produce items visible in the image.",
+    "The image may contain multiple objects. Return up to 8 distinct line items and avoid duplicates.",
+    "If two units of the same product appear, treat them as one item and mention the quantity in reasoning if useful.",
+    "For each detected item, suggest the single best product from the catalog below.",
+    "If a product is not present in the catalog, return null for suggestedProductId and explain why.",
     "Always include visualGuess with the most likely common product name you see, even if it is outside the catalog.",
     "Also extract any visible text from the image itself, such as stickers, labels, signs, crate marks, or handwritten notes.",
-    "Return that extracted text as a short detectedText string array. If no visible text is readable, return an empty array.",
+    "Return that extracted text as a top-level detectedText array for the whole image and also as per-item detectedText when relevant.",
     "Separate product identification from origin inference.",
     "The photo may help identify the product, but it usually cannot prove country of origin on its own.",
     "Do not invent origin facts. Use the visual scene only as one signal.",
@@ -210,7 +275,7 @@ export async function POST(request: NextRequest) {
     "If there is no catalog match, also propose a conservative draft product candidate suitable for admin review.",
     "For produce, prefer category=produce and a simple subcategory like fruit, vegetable, herb, citrus, chile, or unknown.",
     "Always include a short originExplanation and a small evidenceNeeded array naming the next evidence that would improve trust, such as market location, box label photo, sticker text, or vendor origin note.",
-    'Respond with strict JSON only: {"suggestedProductId": string | null, "confidence": "alta" | "media" | "baja", "reasoning": string, "visualGuess": string | null, "detectedText": string[], "originAssessment": "confirmado_mexicano" | "probable_mexicano" | "desconocido", "originExplanation": string, "evidenceNeeded": string[], "draftProduct": {"name": string, "brandName": string | null, "category": string, "subcategory": string | null, "aliases": string[] } | null}',
+    'Respond with strict JSON only: {"detectedText": string[], "items": [{"suggestedProductId": string | null, "confidence": "alta" | "media" | "baja", "reasoning": string, "visualGuess": string | null, "detectedText": string[], "originAssessment": "confirmado_mexicano" | "probable_mexicano" | "desconocido", "originExplanation": string, "evidenceNeeded": string[], "draftProduct": {"name": string, "brandName": string | null, "category": string, "subcategory": string | null, "aliases": string[] } | null}]}',
   ].join("\n\n");
 
   const llmResponse = await fetch("https://api.openai.com/v1/responses", {
@@ -259,38 +324,15 @@ export async function POST(request: NextRequest) {
   const usage = extractUsage(payload);
 
   try {
-    const parsed = JSON.parse(text) as Partial<RecognitionResponse>;
+    const parsed = JSON.parse(text) as Partial<RecognitionResponse & RecognitionItem>;
+    const items = Array.isArray(parsed.items)
+      ? parsed.items.map((item) => normalizeRecognitionItem(item))
+      : [normalizeRecognitionItem(parsed)];
 
-    const result = {
-      suggestedProductId: parsed.suggestedProductId ?? null,
-      confidence: parsed.confidence ?? "baja",
-      reasoning: parsed.reasoning ?? "No reasoning was returned.",
-      visualGuess: parsed.visualGuess ?? null,
-      detectedText: Array.isArray(parsed.detectedText)
-        ? parsed.detectedText.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-        : [],
-      originAssessment:
-        parsed.originAssessment === "confirmado_mexicano" ||
-        parsed.originAssessment === "probable_mexicano" ||
-        parsed.originAssessment === "desconocido"
-          ? parsed.originAssessment
-          : "desconocido",
-      originExplanation: parsed.originExplanation ?? "Origin cannot be confirmed from the current evidence alone.",
-      evidenceNeeded: Array.isArray(parsed.evidenceNeeded)
-        ? parsed.evidenceNeeded.filter((item): item is string => typeof item === "string")
-        : [],
-      draftProduct: parsed.draftProduct
-        ? {
-            name: parsed.draftProduct.name ?? parsed.visualGuess ?? "Producto detectado por AI",
-            brandName: parsed.draftProduct.brandName ?? null,
-            category: parsed.draftProduct.category ?? "produce",
-            subcategory: parsed.draftProduct.subcategory ?? null,
-            aliases: Array.isArray(parsed.draftProduct.aliases)
-              ? parsed.draftProduct.aliases.filter((alias): alias is string => typeof alias === "string")
-              : [],
-          }
-        : null,
-    } satisfies RecognitionResponse;
+    const result: RecognitionResponse = {
+      detectedText: normalizeDetectedText(parsed.detectedText),
+      items: items.filter((item) => item.visualGuess || item.suggestedProductId || item.draftProduct),
+    };
 
     await logAIUsage({
       provider: "openai",
@@ -304,21 +346,22 @@ export async function POST(request: NextRequest) {
       totalTokens: usage.totalTokens,
       estimatedCatalogCandidates: candidates?.length ?? 0,
       barcodeValue: barcodeValue ?? null,
-      visualGuess: result.visualGuess,
+      visualGuess: result.items.map((item) => item.visualGuess).filter(Boolean).join(" | ") || null,
       matchedProductName:
-        candidates?.find((candidate) => candidate.id === result.suggestedProductId)?.name ?? null,
-      reasoning: result.reasoning,
+        result.items
+          .map((item) => candidates?.find((candidate) => candidate.id === item.suggestedProductId)?.name ?? null)
+          .filter(Boolean)
+          .join(" | ") || null,
+      reasoning: result.items.map((item) => item.reasoning).join("\n\n"),
       metadata: {
         usedImageUrl: Boolean(imageUrl),
         usedImageDataUrl: Boolean(imageDataUrl),
-        draftSuggested: Boolean(result.draftProduct),
+        draftSuggested: result.items.some((item) => Boolean(item.draftProduct)),
         marketContext: marketContext?.trim() || null,
         vendorOriginHint: vendorOriginHint?.trim() || null,
         observedTextHint: observedTextHint?.trim() || null,
         detectedText: result.detectedText,
-        originAssessment: result.originAssessment,
-        originExplanation: result.originExplanation,
-        evidenceNeeded: result.evidenceNeeded,
+        items: result.items,
       },
     });
 

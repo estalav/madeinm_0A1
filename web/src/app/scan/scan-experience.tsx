@@ -29,6 +29,18 @@ type DraftProductCandidate = {
 
 type OriginAssessment = "confirmado_mexicano" | "probable_mexicano" | "desconocido";
 
+type RecognitionItem = {
+  suggestedProductId: string | null;
+  confidence: string;
+  reasoning: string;
+  visualGuess: string | null;
+  detectedText: string[];
+  originAssessment: OriginAssessment;
+  originExplanation: string;
+  evidenceNeeded: string[];
+  draftProduct: DraftProductCandidate | null;
+};
+
 type BarcodeDetectorResult = {
   rawValue?: string;
 };
@@ -115,18 +127,11 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
   const [detectingBarcode, setDetectingBarcode] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);
   const [recentScans, setRecentScans] = useState<ScanRecord[]>([]);
-  const [guestGuess, setGuestGuess] = useState<string | null>(null);
-  const [guestReasoning, setGuestReasoning] = useState<string | null>(null);
-  const [guestConfidence, setGuestConfidence] = useState<string | null>(null);
   const [guestDetectedText, setGuestDetectedText] = useState<string[]>([]);
-  const [guestOriginAssessment, setGuestOriginAssessment] = useState<OriginAssessment | null>(null);
-  const [guestOriginExplanation, setGuestOriginExplanation] = useState<string | null>(null);
-  const [guestEvidenceNeeded, setGuestEvidenceNeeded] = useState<string[]>([]);
-  const [guestCatalogMatch, setGuestCatalogMatch] = useState<string | null>(null);
-  const [guestDraftCandidate, setGuestDraftCandidate] = useState<DraftProductCandidate | null>(null);
-  const [draftMessage, setDraftMessage] = useState<string | null>(null);
-  const [draftError, setDraftError] = useState<string | null>(null);
-  const [creatingDraft, setCreatingDraft] = useState(false);
+  const [guestItems, setGuestItems] = useState<(RecognitionItem & { catalogMatchName: string | null; resultKey: string })[]>([]);
+  const [draftMessages, setDraftMessages] = useState<Record<string, string>>({});
+  const [draftErrors, setDraftErrors] = useState<Record<string, string>>({});
+  const [creatingDraftKeys, setCreatingDraftKeys] = useState<Record<string, boolean>>({});
   const [marketContext, setMarketContext] = useState("");
   const [vendorOriginHint, setVendorOriginHint] = useState("");
   const [observedTextHint, setObservedTextHint] = useState("");
@@ -361,17 +366,11 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
     setLoadingUpload(true);
     setUploadError(null);
     setUploadMessage(null);
-    setGuestGuess(null);
-    setGuestReasoning(null);
-    setGuestConfidence(null);
     setGuestDetectedText([]);
-    setGuestOriginAssessment(null);
-    setGuestOriginExplanation(null);
-    setGuestEvidenceNeeded([]);
-    setGuestCatalogMatch(null);
-    setGuestDraftCandidate(null);
-    setDraftMessage(null);
-    setDraftError(null);
+    setGuestItems([]);
+    setDraftMessages({});
+    setDraftErrors({});
+    setCreatingDraftKeys({});
 
     void (async () => {
       try {
@@ -403,47 +402,42 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
         const rawText = await response.text();
         const payload = (rawText ? JSON.parse(rawText) : {}) as {
           error?: string;
-          suggestedProductId?: string | null;
-          confidence?: string;
-          reasoning?: string;
-          visualGuess?: string | null;
           detectedText?: string[];
-          originAssessment?: OriginAssessment;
-          originExplanation?: string;
-          evidenceNeeded?: string[];
-          draftProduct?: DraftProductCandidate | null;
+          items?: RecognitionItem[];
         };
 
         if (!response.ok) {
           throw new Error(payload.error ?? "We could not analyze this guest scan.");
         }
 
-        const matchedProduct = ((data ?? []) as ProductCandidate[]).find(
-          (candidate) => candidate.id === payload.suggestedProductId,
-        );
-
-        setGuestGuess(payload.visualGuess ?? null);
-        setGuestReasoning(payload.reasoning ?? null);
-        setGuestConfidence(payload.confidence ?? null);
         setGuestDetectedText(payload.detectedText ?? []);
-        setGuestOriginAssessment(payload.originAssessment ?? "desconocido");
-        setGuestOriginExplanation(payload.originExplanation ?? null);
-        setGuestEvidenceNeeded(payload.evidenceNeeded ?? []);
-        setGuestCatalogMatch(matchedProduct?.name ?? null);
-        setGuestDraftCandidate(payload.draftProduct ?? null);
+        const resultItems = (payload.items ?? []).map((item, index) => {
+          const matchedProduct = ((data ?? []) as ProductCandidate[]).find(
+            (candidate) => candidate.id === item.suggestedProductId,
+          );
 
-        if (matchedProduct) {
-          setUploadMessage(
-            `The guest recognizer suggests ${matchedProduct.name}. You can sign in later to save a real scan record.`,
-          );
-        } else if (payload.visualGuess) {
-          setUploadMessage(
-            `This looks like ${payload.visualGuess}, but it is not in the current pilot catalog yet.`,
-          );
-        } else {
+          return {
+            ...item,
+            catalogMatchName: matchedProduct?.name ?? null,
+            resultKey: `${item.suggestedProductId ?? item.visualGuess ?? "unknown"}-${index}`,
+          };
+        });
+
+        setGuestItems(resultItems);
+
+        if (resultItems.length === 0) {
           setUploadMessage(
             "We could not match this image confidently. Try a clearer photo or sign in later for the full saved flow.",
           );
+        } else if (resultItems.length === 1) {
+          const item = resultItems[0];
+          setUploadMessage(
+            item.catalogMatchName
+              ? `The guest recognizer suggests ${item.catalogMatchName}. You can sign in later to save a real scan record.`
+              : `This looks like ${item.visualGuess ?? "an unidentified product"}, but it is not in the current pilot catalog yet.`,
+          );
+        } else {
+          setUploadMessage(`Detected ${resultItems.length} products in this photo. Review each item below.`);
         }
       } catch (error) {
         if (error instanceof SyntaxError) {
@@ -458,15 +452,18 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
     })();
   }
 
-  async function handleCreateDraftProduct() {
-    if (!guestDraftCandidate) {
-      setDraftError("There is no AI draft candidate available yet.");
+  async function handleCreateDraftProduct(item: RecognitionItem & { resultKey: string }) {
+    if (!item.draftProduct) {
+      setDraftErrors((current) => ({
+        ...current,
+        [item.resultKey]: "There is no AI draft candidate available yet.",
+      }));
       return;
     }
 
-    setCreatingDraft(true);
-    setDraftMessage(null);
-    setDraftError(null);
+    setCreatingDraftKeys((current) => ({ ...current, [item.resultKey]: true }));
+    setDraftMessages((current) => ({ ...current, [item.resultKey]: "" }));
+    setDraftErrors((current) => ({ ...current, [item.resultKey]: "" }));
 
     try {
       const response = await fetch("/api/draft-products", {
@@ -475,10 +472,10 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...guestDraftCandidate,
+          ...item.draftProduct,
           barcodeValue: barcodeValue || null,
-          reasoning: guestReasoning,
-          visualGuess: guestGuess,
+          reasoning: item.reasoning,
+          visualGuess: item.visualGuess,
         }),
       });
 
@@ -495,14 +492,23 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
       }
 
       if (payload.existing) {
-        setDraftMessage(`A matching product already exists: ${payload.name} (${payload.status}).`);
+        setDraftMessages((current) => ({
+          ...current,
+          [item.resultKey]: `A matching product already exists: ${payload.name} (${payload.status}).`,
+        }));
       } else {
-        setDraftMessage(`Draft product created successfully: ${payload.name} (${payload.status}).`);
+        setDraftMessages((current) => ({
+          ...current,
+          [item.resultKey]: `Draft product created successfully: ${payload.name} (${payload.status}).`,
+        }));
       }
     } catch (error) {
-      setDraftError(error instanceof Error ? error.message : "Draft creation failed.");
+      setDraftErrors((current) => ({
+        ...current,
+        [item.resultKey]: error instanceof Error ? error.message : "Draft creation failed.",
+      }));
     } finally {
-      setCreatingDraft(false);
+      setCreatingDraftKeys((current) => ({ ...current, [item.resultKey]: false }));
     }
   }
 
@@ -682,57 +688,73 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
             {uploadMessage ? <p className="status-ok">{uploadMessage}</p> : null}
             {uploadError ? <p className="status-error">{uploadError}</p> : null}
 
-            {guestGuess || guestCatalogMatch ? (
+            {guestDetectedText.length > 0 ? (
               <div className="trust-card">
-                <p className="eyebrow">Resultado invitado</p>
-                <h3>{guestCatalogMatch ?? guestGuess ?? "Sin coincidencia"}</h3>
-                {guestCatalogMatch ? (
-                  <p className="trust-status">Coincidencia encontrada dentro del catalogo piloto</p>
-                ) : guestGuess ? (
-                  <p className="trust-status">
-                    Parece ser {guestGuess}, pero aun no existe en el catalogo piloto
-                  </p>
-                ) : null}
-                <p className="trust-confidence">
-                  {guestConfidence ? `Confianza ${guestConfidence}` : "Sin confianza calculada"}
+                <p className="eyebrow">OCR evidence</p>
+                <p className="scan-copy">
+                  Visible text detected in the image. This evidence can strengthen product matching and origin confidence.
                 </p>
-                <p className="trust-status">{originAssessmentLabel(guestOriginAssessment)}</p>
-                {guestOriginExplanation ? <p className="scan-copy">{guestOriginExplanation}</p> : null}
-                {guestDetectedText.length > 0 ? (
-                  <>
-                    <p className="scan-copy">
-                      Visible text detected in the image. This OCR evidence can strengthen the
-                      product match and origin confidence.
+                <div className="admin-aliases">
+                  {guestDetectedText.map((item) => (
+                    <span key={item}>{item}</span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {guestItems.length > 0 ? (
+              <div className="recent-list">
+                {guestItems.map((item, index) => (
+                  <div key={item.resultKey} className="trust-card">
+                    <p className="eyebrow">Detected item {index + 1}</p>
+                    <h3>{item.catalogMatchName ?? item.visualGuess ?? "Sin coincidencia"}</h3>
+                    {item.catalogMatchName ? (
+                      <p className="trust-status">Coincidencia encontrada dentro del catalogo piloto</p>
+                    ) : item.visualGuess ? (
+                      <p className="trust-status">
+                        Parece ser {item.visualGuess}, pero aun no existe en el catalogo piloto
+                      </p>
+                    ) : null}
+                    <p className="trust-confidence">
+                      {item.confidence ? `Confianza ${item.confidence}` : "Sin confianza calculada"}
                     </p>
-                    <div className="admin-aliases">
-                      {guestDetectedText.map((item) => (
-                        <span key={item}>{item}</span>
-                      ))}
-                    </div>
-                  </>
-                ) : null}
-                {guestReasoning ? <p className="scan-copy">{guestReasoning}</p> : null}
-                {guestEvidenceNeeded.length > 0 ? (
-                  <div className="admin-aliases">
-                    {guestEvidenceNeeded.map((item) => (
-                      <span key={item}>{item}</span>
-                    ))}
+                    <p className="trust-status">{originAssessmentLabel(item.originAssessment)}</p>
+                    {item.originExplanation ? <p className="scan-copy">{item.originExplanation}</p> : null}
+                    {item.detectedText.length > 0 ? (
+                      <div className="admin-aliases">
+                        {item.detectedText.map((value) => (
+                          <span key={`${item.resultKey}-${value}`}>{value}</span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {item.reasoning ? <p className="scan-copy">{item.reasoning}</p> : null}
+                    {item.evidenceNeeded.length > 0 ? (
+                      <div className="admin-aliases">
+                        {item.evidenceNeeded.map((value) => (
+                          <span key={`${item.resultKey}-${value}`}>{value}</span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {!item.catalogMatchName && item.draftProduct ? (
+                      <>
+                        <button
+                          className="button button-secondary"
+                          type="button"
+                          onClick={() => void handleCreateDraftProduct(item)}
+                          disabled={Boolean(creatingDraftKeys[item.resultKey])}
+                        >
+                          {creatingDraftKeys[item.resultKey] ? "Creating draft..." : "Create draft product"}
+                        </button>
+                        {draftMessages[item.resultKey] ? (
+                          <p className="status-ok">{draftMessages[item.resultKey]}</p>
+                        ) : null}
+                        {draftErrors[item.resultKey] ? (
+                          <p className="status-error">{draftErrors[item.resultKey]}</p>
+                        ) : null}
+                      </>
+                    ) : null}
                   </div>
-                ) : null}
-                {!guestCatalogMatch && guestDraftCandidate ? (
-                  <>
-                    <button
-                      className="button button-secondary"
-                      type="button"
-                      onClick={handleCreateDraftProduct}
-                      disabled={creatingDraft}
-                    >
-                      {creatingDraft ? "Creating draft..." : "Create draft product"}
-                    </button>
-                    {draftMessage ? <p className="status-ok">{draftMessage}</p> : null}
-                    {draftError ? <p className="status-error">{draftError}</p> : null}
-                  </>
-                ) : null}
+                ))}
               </div>
             ) : null}
           </section>

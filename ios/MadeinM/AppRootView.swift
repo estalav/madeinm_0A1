@@ -45,7 +45,7 @@ private struct CatalogView: View {
             } else if let errorMessage {
                 ContentUnavailableView("We could not load the catalog", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
             } else {
-                List(products) { product in
+                List(products, id: \.id) { product in
                     NavigationLink {
                         CatalogProductDetailView(product: product)
                     } label: {
@@ -60,7 +60,7 @@ private struct CatalogView: View {
                             HStack {
                                 Text(product.confidenceLabel)
                                 Spacer()
-                                Text(product.origin.stateName ?? "State pending")
+                                Text(product.origin.state_name ?? "State pending")
                             }
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -172,7 +172,7 @@ private struct CatalogProductDetailView: View {
                 HStack {
                     OriginChip(text: product.category.capitalized)
                     OriginChip(text: product.subcategory?.capitalized ?? "No subcategory")
-                    OriginChip(text: product.origin.stateName ?? "State pending")
+                    OriginChip(text: product.origin.state_name ?? "State pending")
                 }
 
                 if !product.aliases.isEmpty {
@@ -188,7 +188,7 @@ private struct CatalogProductDetailView: View {
                     Text("Origin reasoning")
                         .font(.headline)
 
-                    Text(product.origin.summaryReason ?? "No origin explanation recorded yet.")
+                    Text(product.origin.summary_reason ?? "No origin explanation recorded yet.")
                         .foregroundStyle(.secondary)
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -323,23 +323,20 @@ private struct OriginsMapView: View {
 
 private struct ScanPrototypeView: View {
     let service: MadeinMService
-    @State private var confirmedMatches: [ConfirmedMatch] = []
     @State private var products: [ProductSummary] = []
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: Image?
-    @State private var selectedProductID: UUID?
-    @State private var observedHint = ""
+    @State private var selectedUIImage: UIImage?
+    @State private var barcodeValue = ""
+    @State private var marketContext = ""
+    @State private var vendorOriginHint = ""
+    @State private var observedTextHint = ""
+    @State private var ocrDetectedText: [String] = []
+    @State private var recognizedItems: [RecognizedItem] = []
     @State private var isLoadingProducts = false
+    @State private var isRecognizing = false
     @State private var errorMessage: String?
     @State private var statusMessage: String?
-
-    var matchedProduct: ProductSummary? {
-        products.first(where: { $0.id == selectedProductID })
-    }
-
-    var suggestedProducts: [ProductSummary] {
-        service.suggestProducts(query: observedHint, from: products)
-    }
 
     var body: some View {
         ScrollView {
@@ -353,7 +350,7 @@ private struct ScanPrototypeView: View {
                     Text("Take a photo or choose one in the simulator.")
                         .font(.largeTitle.bold())
 
-                    Text("This native pilot lets you test the visual scan flow, confirm a product, and browse the same catalog and origin language used on the web app.")
+                    Text("Use one photo to detect multiple grocery items, then review product and origin evidence the same way the web app does.")
                         .foregroundStyle(.secondary)
                 }
 
@@ -391,116 +388,124 @@ private struct ScanPrototypeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Product hint")
+                    Text("Barcode (optional)")
                         .font(.headline)
 
-                    TextField("Example: mango, avocado, lime", text: $observedHint)
+                    TextField("Example: 7501234567890 or 4011", text: $barcodeValue)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .padding()
                         .background(.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                    if !suggestedProducts.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 10) {
-                                ForEach(suggestedProducts.prefix(4)) { product in
-                                    Button {
-                                        selectedProductID = product.id
-                                    } label: {
-                                        Text(product.name)
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 10)
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .tint(Color("BrandGreen"))
-                                }
-                            }
-                        }
-                    }
-
-                    Text("Catalog product")
+                    Text("Market context")
                         .font(.headline)
 
-                    if isLoadingProducts {
-                        ProgressView("Loading matches...")
-                    } else {
-                        Picker("Product", selection: $selectedProductID) {
-                            Text("Select a product").tag(Optional<UUID>.none)
-                            ForEach(products) { product in
-                                Text(product.name).tag(Optional(product.id))
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    TextField("Example: Central de Abasto CDMX", text: $marketContext)
+                        .textInputAutocapitalization(.words)
                         .padding()
                         .background(.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    }
+
+                    Text("Seller or origin hint")
+                        .font(.headline)
+
+                    TextField("Example: seller says Puebla or producto de Mexico", text: $vendorOriginHint)
+                        .textInputAutocapitalization(.sentences)
+                        .padding()
+                        .background(.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                    Text("Visible text from sign, box, or label")
+                        .font(.headline)
+
+                    TextField("Example: Producto de Mexico, Chiapas, supplier name", text: $observedTextHint, axis: .vertical)
+                        .textInputAutocapitalization(.sentences)
+                        .lineLimit(3 ... 5)
+                        .padding()
+                        .background(.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
 
                 Button {
-                    confirmCurrentMatch()
+                    Task {
+                        await runRecognition()
+                    }
                 } label: {
-                    Text("Confirm match")
+                    Text(isRecognizing ? "Analyzing..." : "Recognize products")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Color("BrandGreen"))
-                .disabled(matchedProduct == nil)
+                .disabled(selectedUIImage == nil || isRecognizing || isLoadingProducts)
 
-                if let matchedProduct {
+                if let statusMessage {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Current result")
+                        Text("Recognition status")
                             .font(.caption.weight(.bold))
                             .textCase(.uppercase)
                             .foregroundStyle(Color("BrandRed"))
 
-                        Text(matchedProduct.name)
-                            .font(.title.bold())
-
-                        Text(matchedProduct.originStatusLabel)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(Color("BrandRed"))
-
-                        Text(matchedProduct.confidenceLabel)
-                            .font(.headline)
+                        Text(statusMessage)
                             .foregroundStyle(Color("BrandGreen"))
-
-                        Text(matchedProduct.caloriesLabel)
-                            .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(20)
                     .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 }
 
-                if let statusMessage {
-                    Text(statusMessage)
-                        .foregroundStyle(Color("BrandGreen"))
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                if !ocrDetectedText.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("OCR evidence")
+                            .font(.headline)
+
+                        FlowingAliasView(aliases: ocrDetectedText)
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Recent confirmations")
+                    Text("Detected items")
                         .font(.headline)
 
-                    if confirmedMatches.isEmpty {
-                        Text("Your local confirmations will appear here while we keep building the backend-connected scan flow.")
+                    if recognizedItems.isEmpty {
+                        Text("Choose a photo and run recognition to see each detected grocery item from the image.")
                             .foregroundStyle(.secondary)
                     } else {
-                        ForEach(confirmedMatches) { match in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(match.product.name)
-                                    .font(.headline)
+                        ForEach(Array(recognizedItems.enumerated()), id: \.offset) { index, item in
+                            let matchedProduct = products.first(where: { $0.id == item.suggestedProductId })
 
-                                Text(match.product.originStatusLabel)
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Item \(index + 1)")
+                                    .font(.caption.weight(.bold))
+                                    .textCase(.uppercase)
+                                    .foregroundStyle(Color("BrandRed"))
+
+                                Text(matchedProduct?.name ?? item.visualGuess ?? "Unknown item")
+                                    .font(.title3.bold())
+
+                                Text(matchedProduct != nil ? "Matched inside the pilot catalog" : "Outside the pilot catalog")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(Color("BrandRed"))
 
-                                Text(match.timestamp.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.caption)
+                                Text("Confidence \(item.confidence)")
+                                    .font(.headline)
+                                    .foregroundStyle(Color("BrandGreen"))
+
+                                Text(item.originAssessmentLabel)
+                                    .font(.subheadline.weight(.semibold))
+
+                                Text(item.originExplanation)
                                     .foregroundStyle(.secondary)
+
+                                if !item.detectedText.isEmpty {
+                                    FlowingAliasView(aliases: item.detectedText)
+                                }
+
+                                Text(item.reasoning)
+                                    .foregroundStyle(.secondary)
+
+                                if !item.evidenceNeeded.isEmpty {
+                                    FlowingAliasView(aliases: item.evidenceNeeded)
+                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(16)
@@ -537,9 +542,6 @@ private struct ScanPrototypeView: View {
 
         do {
             products = try await service.fetchProducts()
-            if selectedProductID == nil {
-                selectedProductID = products.first?.id
-            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -554,25 +556,47 @@ private struct ScanPrototypeView: View {
         do {
             if let data = try await item.loadTransferable(type: Data.self),
                let uiImage = UIImage(data: data) {
+                selectedUIImage = uiImage
                 selectedImage = Image(uiImage: uiImage)
-                statusMessage = "Image loaded in the iOS prototype. Choose the right product and confirm the match."
-                if observedHint.isEmpty {
-                    observedHint = "mango"
-                }
+                statusMessage = "Image loaded. Run recognition to detect multiple products in the photo."
+                recognizedItems = []
+                ocrDetectedText = []
             }
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    private func confirmCurrentMatch() {
-        guard let matchedProduct else { return }
+    private func runRecognition() async {
+        guard let selectedUIImage else {
+            errorMessage = "Choose a photo before running recognition."
+            return
+        }
 
-        statusMessage = "Match confirmed locally for \(matchedProduct.name)."
-        confirmedMatches.insert(
-            ConfirmedMatch(id: UUID(), product: matchedProduct, timestamp: Date()),
-            at: 0
-        )
+        isRecognizing = true
+        errorMessage = nil
+        statusMessage = nil
+
+        do {
+            let payload = try await service.recognizeProducts(
+                image: selectedUIImage,
+                candidates: products,
+                barcodeValue: barcodeValue,
+                marketContext: marketContext,
+                vendorOriginHint: vendorOriginHint,
+                observedTextHint: observedTextHint
+            )
+
+            recognizedItems = payload.items
+            ocrDetectedText = payload.detectedText
+            statusMessage = payload.items.isEmpty
+                ? "No products were recognized confidently from this photo."
+                : "Detected \(payload.items.count) product\(payload.items.count == 1 ? "" : "s") from this image."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isRecognizing = false
     }
 }
 
@@ -612,10 +636,4 @@ private struct FlowingAliasView: View {
             Array(aliases[start ..< min(start + 3, aliases.count)])
         }
     }
-}
-
-private struct ConfirmedMatch: Identifiable {
-    let id: UUID
-    let product: ProductSummary
-    let timestamp: Date
 }
