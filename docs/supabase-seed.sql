@@ -32,6 +32,7 @@ with upserted_products as (
     ('Mango Ataulfo', 'produce', 'fruit', null, 'Mango dulce originario y ampliamente cultivado en Mexico.', false, null, 'active'),
     ('Papaya Maradol', 'produce', 'fruit', null, 'Papaya de consumo frecuente en hogares mexicanos.', false, null, 'active'),
     ('Cilantro Fresco', 'produce', 'herb', null, 'Hierba aromatica comun en salsas, caldos y tacos.', false, null, 'active'),
+    ('Parsley (flat-leaf / Italian parsley) bunch', 'produce', 'herb', null, 'Ramo de perejil fresco de hoja plana, comun en cocina casera y de mercado.', false, null, 'active'),
     ('Chile Serrano', 'produce', 'chile', null, 'Chile fresco para salsas y condimentos.', false, null, 'active'),
     ('Frijol Negro Seco', 'pantry', 'legume', null, 'Frijol negro seco vendido a granel o en empaque.', true, null, 'active')
   on conflict do nothing
@@ -58,6 +59,12 @@ join (
     ('Mango Ataulfo', 'mango'),
     ('Papaya Maradol', 'papaya'),
     ('Cilantro Fresco', 'cilantro'),
+    ('Parsley (flat-leaf / Italian parsley) bunch', 'parsley'),
+    ('Parsley (flat-leaf / Italian parsley) bunch', 'italian parsley'),
+    ('Parsley (flat-leaf / Italian parsley) bunch', 'flat-leaf parsley'),
+    ('Parsley (flat-leaf / Italian parsley) bunch', 'perejil'),
+    ('Parsley (flat-leaf / Italian parsley) bunch', 'perejil italiano'),
+    ('Parsley (flat-leaf / Italian parsley) bunch', 'ramo de perejil'),
     ('Chile Serrano', 'serrano'),
     ('Frijol Negro Seco', 'frijol negro')
 ) as a(product_name, alias)
@@ -97,6 +104,7 @@ select
   null,
   case
     when p.name = 'Platano Cavendish' then 'Producto agregado al piloto para reconocimiento, pero su origen no debe darse por confirmado sin evidencia adicional del proveedor o etiqueta.'
+    when p.name = 'Parsley (flat-leaf / Italian parsley) bunch' then 'Producto agregado al piloto para reconocimiento multiobjeto. Su origen no debe darse por confirmado sin evidencia adicional del proveedor o etiqueta.'
     when p.name = 'Mango Ataulfo' then 'Producto ampliamente asociado con cultivo nacional y registro curado inicial.'
     when p.name = 'Aguacate Hass' then 'Producto comun de origen mexicano en el piloto con validacion curada inicial.'
     when p.name = 'Limon Mexicano' then 'Clasificacion inicial sustentada por catalogo curado para el piloto.'
@@ -213,6 +221,7 @@ join (
     ('Mango Ataulfo', '100 g', 60, 0.8, 15.0, 0.4, 1.6, 13.7, 'Mango fresco'),
     ('Papaya Maradol', '100 g', 43, 0.5, 10.8, 0.3, 1.7, 7.8, 'Papaya fresca'),
     ('Cilantro Fresco', '100 g', 23, 2.1, 3.7, 0.5, 2.8, 0.9, 'Cilantro fresco'),
+    ('Parsley (flat-leaf / Italian parsley) bunch', '100 g', 36, 3.0, 6.3, 0.8, 3.3, 0.9, 'Perejil fresco'),
     ('Chile Serrano', '100 g', 32, 1.7, 7.5, 0.4, 3.7, 4.0, 'Chile serrano fresco'),
     ('Frijol Negro Seco', '100 g', 339, 21.6, 62.4, 1.4, 15.5, 2.1, 'Frijol negro seco')
 ) as n(product_name, serving_size, calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g, ingredients_text)
@@ -326,6 +335,7 @@ from (
     ('Mango Ataulfo', 42.00, 'kg'),
     ('Papaya Maradol', 26.00, 'kg'),
     ('Cilantro Fresco', 8.00, 'bundle'),
+    ('Parsley (flat-leaf / Italian parsley) bunch', 9.00, 'bundle'),
     ('Chile Serrano', 36.00, 'kg'),
     ('Frijol Negro Seco', 34.00, 'kg')
 ) as mp(product_name, price_amount, price_unit)
@@ -374,6 +384,7 @@ from (
     ('Mango Ataulfo', 49.00, 'kg'),
     ('Papaya Maradol', 31.00, 'kg'),
     ('Cilantro Fresco', 10.00, 'bundle'),
+    ('Parsley (flat-leaf / Italian parsley) bunch', 12.00, 'bundle'),
     ('Chile Serrano', 44.00, 'kg'),
     ('Frijol Negro Seco', 42.00, 'kg')
 ) as rp(product_name, price_amount, price_unit)

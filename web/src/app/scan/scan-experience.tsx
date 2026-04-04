@@ -513,6 +513,8 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
   }
 
   const isGuest = !userId && guestMode;
+  const guestMatchedCount = guestItems.filter((item) => item.catalogMatchName).length;
+  const guestUnmatchedCount = guestItems.length - guestMatchedCount;
 
   return (
     <div className="scan-shell">
@@ -703,7 +705,20 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
             ) : null}
 
             {guestItems.length > 0 ? (
-              <div className="recent-list">
+              <>
+                <div className="trust-card">
+                  <p className="eyebrow">Scan summary</p>
+                  <h3>{guestItems.length} items detected</h3>
+                  <p className="scan-copy">
+                    {guestMatchedCount} matched the pilot catalog and {guestUnmatchedCount} still need catalog curation or draft review.
+                  </p>
+                  <div className="admin-aliases">
+                    <span>{guestMatchedCount} matched</span>
+                    <span>{guestUnmatchedCount} unmatched</span>
+                  </div>
+                </div>
+
+                <div className="recent-list">
                 {guestItems.map((item, index) => (
                   <div key={item.resultKey} className="trust-card">
                     <p className="eyebrow">Detected item {index + 1}</p>
@@ -755,7 +770,8 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
                     ) : null}
                   </div>
                 ))}
-              </div>
+                </div>
+              </>
             ) : null}
           </section>
 
