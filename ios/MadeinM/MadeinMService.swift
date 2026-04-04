@@ -288,7 +288,9 @@ struct MadeinMService {
         observedTextHint: String
     ) async throws -> RecognitionPayload {
         guard let imageDataUrl = prepareRecognitionDataURL(from: image) else {
-            throw URLError(.cannotEncodeContentData)
+            throw NSError(domain: "MadeinMRecognition", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "We could not prepare this image for recognition."
+            ])
         }
 
         var request = URLRequest(url: recognitionURL)
