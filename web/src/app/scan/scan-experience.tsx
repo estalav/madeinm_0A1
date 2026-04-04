@@ -41,6 +41,18 @@ type RecognitionItem = {
   draftProduct: DraftProductCandidate | null;
 };
 
+type GuestResultItem = RecognitionItem & {
+  catalogMatchName: string | null;
+  resultKey: string;
+};
+
+type CorrectionState = {
+  mode: "catalog" | "draft";
+  selectedProductId: string;
+  typedName: string;
+  appliedLabel: string | null;
+};
+
 type BarcodeDetectorResult = {
   rawValue?: string;
 };
@@ -127,11 +139,14 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
   const [detectingBarcode, setDetectingBarcode] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);
   const [recentScans, setRecentScans] = useState<ScanRecord[]>([]);
+  const [productCandidates, setProductCandidates] = useState<ProductCandidate[]>([]);
   const [guestDetectedText, setGuestDetectedText] = useState<string[]>([]);
-  const [guestItems, setGuestItems] = useState<(RecognitionItem & { catalogMatchName: string | null; resultKey: string })[]>([]);
+  const [guestItems, setGuestItems] = useState<GuestResultItem[]>([]);
   const [draftMessages, setDraftMessages] = useState<Record<string, string>>({});
   const [draftErrors, setDraftErrors] = useState<Record<string, string>>({});
   const [creatingDraftKeys, setCreatingDraftKeys] = useState<Record<string, boolean>>({});
+  const [correctionOpenKeys, setCorrectionOpenKeys] = useState<Record<string, boolean>>({});
+  const [corrections, setCorrections] = useState<Record<string, CorrectionState>>({});
   const [marketContext, setMarketContext] = useState("");
   const [vendorOriginHint, setVendorOriginHint] = useState("");
   const [observedTextHint, setObservedTextHint] = useState("");
@@ -383,6 +398,9 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
           throw new Error(error.message);
         }
 
+        const candidates = (data ?? []) as ProductCandidate[];
+        setProductCandidates(candidates);
+
         const imageDataUrl = await compressImageForRecognition(selectedFile);
         const response = await fetch("/api/recognize", {
           method: "POST",
@@ -392,7 +410,7 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
           body: JSON.stringify({
             imageDataUrl,
             barcodeValue: barcodeValue || null,
-            candidates: (data ?? []) as ProductCandidate[],
+            candidates,
             marketContext: marketContext || null,
             vendorOriginHint: vendorOriginHint || null,
             observedTextHint: observedTextHint || null,
@@ -412,7 +430,7 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
 
         setGuestDetectedText(payload.detectedText ?? []);
         const resultItems = (payload.items ?? []).map((item, index) => {
-          const matchedProduct = ((data ?? []) as ProductCandidate[]).find(
+          const matchedProduct = candidates.find(
             (candidate) => candidate.id === item.suggestedProductId,
           );
 
@@ -424,6 +442,8 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
         });
 
         setGuestItems(resultItems);
+        setCorrections({});
+        setCorrectionOpenKeys({});
 
         if (resultItems.length === 0) {
           setUploadMessage(
@@ -506,6 +526,159 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
       setDraftErrors((current) => ({
         ...current,
         [item.resultKey]: error instanceof Error ? error.message : "Draft creation failed.",
+      }));
+    } finally {
+      setCreatingDraftKeys((current) => ({ ...current, [item.resultKey]: false }));
+    }
+  }
+
+  function setCorrectionState(resultKey: string, item: GuestResultItem) {
+    setCorrections((current) => ({
+      ...current,
+      [resultKey]:
+        current[resultKey] ?? {
+          mode: "catalog",
+          selectedProductId: item.suggestedProductId ?? "",
+          typedName: item.visualGuess ?? "",
+          appliedLabel: null,
+        },
+    }));
+  }
+
+  function handleOpenCorrection(item: GuestResultItem) {
+    setCorrectionState(item.resultKey, item);
+    setCorrectionOpenKeys((current) => ({
+      ...current,
+      [item.resultKey]: !current[item.resultKey],
+    }));
+  }
+
+  function updateCorrection(resultKey: string, next: Partial<CorrectionState>) {
+    setCorrections((current) => {
+      const existing = current[resultKey] ?? {
+        mode: "catalog" as const,
+        selectedProductId: "",
+        typedName: "",
+        appliedLabel: null,
+      };
+
+      return {
+        ...current,
+        [resultKey]: {
+          ...existing,
+          ...next,
+        },
+      };
+    });
+  }
+
+  function applyCatalogCorrection(item: GuestResultItem) {
+    const correction = corrections[item.resultKey];
+
+    if (!correction?.selectedProductId) {
+      setDraftErrors((current) => ({
+        ...current,
+        [item.resultKey]: "Choose the correct catalog product first.",
+      }));
+      return;
+    }
+
+    const selectedProduct = productCandidates.find(
+      (candidate) => candidate.id === correction.selectedProductId,
+    );
+
+    if (!selectedProduct) {
+      setDraftErrors((current) => ({
+        ...current,
+        [item.resultKey]: "We could not find that catalog product anymore.",
+      }));
+      return;
+    }
+
+    setGuestItems((current) =>
+      current.map((entry) =>
+        entry.resultKey === item.resultKey
+          ? {
+              ...entry,
+              suggestedProductId: selectedProduct.id,
+              catalogMatchName: selectedProduct.name,
+            }
+          : entry,
+      ),
+    );
+
+    setDraftErrors((current) => ({ ...current, [item.resultKey]: "" }));
+    setDraftMessages((current) => ({
+      ...current,
+      [item.resultKey]: `Marked as corrected: ${selectedProduct.name}.`,
+    }));
+    updateCorrection(item.resultKey, { appliedLabel: selectedProduct.name });
+    setCorrectionOpenKeys((current) => ({ ...current, [item.resultKey]: false }));
+  }
+
+  async function applyDraftCorrection(item: GuestResultItem) {
+    const correction = corrections[item.resultKey];
+    const draftName = correction?.typedName.trim();
+
+    if (!draftName) {
+      setDraftErrors((current) => ({
+        ...current,
+        [item.resultKey]: "Type the correct product name first.",
+      }));
+      return;
+    }
+
+    setCreatingDraftKeys((current) => ({ ...current, [item.resultKey]: true }));
+    setDraftErrors((current) => ({ ...current, [item.resultKey]: "" }));
+
+    try {
+      const response = await fetch("/api/draft-products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: draftName,
+          category: item.draftProduct?.category ?? "produce",
+          subcategory: item.draftProduct?.subcategory ?? null,
+          aliases: Array.from(
+            new Set([
+              draftName,
+              ...(item.draftProduct?.aliases ?? []),
+              ...(item.visualGuess ? [item.visualGuess] : []),
+            ]),
+          ),
+          barcodeValue: barcodeValue || null,
+          reasoning: item.reasoning,
+          visualGuess: draftName,
+        }),
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+        created?: boolean;
+        existing?: boolean;
+        name?: string;
+        status?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "We could not create the corrected draft.");
+      }
+
+      setDraftMessages((current) => ({
+        ...current,
+        [item.resultKey]: payload.existing
+          ? `A matching product already exists: ${payload.name} (${payload.status}).`
+          : `Draft product created successfully: ${payload.name} (${payload.status}).`,
+      }));
+      updateCorrection(item.resultKey, { appliedLabel: draftName });
+      setCorrectionOpenKeys((current) => ({ ...current, [item.resultKey]: false }));
+    } catch (error) {
+      setDraftErrors((current) => ({
+        ...current,
+        [item.resultKey]:
+          error instanceof Error ? error.message : "Corrected draft creation failed.",
       }));
     } finally {
       setCreatingDraftKeys((current) => ({ ...current, [item.resultKey]: false }));
@@ -748,6 +921,91 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
                         {item.evidenceNeeded.map((value) => (
                           <span key={`${item.resultKey}-${value}`}>{value}</span>
                         ))}
+                      </div>
+                    ) : null}
+                    <div className="admin-actions">
+                      <button
+                        className="button button-secondary"
+                        type="button"
+                        onClick={() => handleOpenCorrection(item)}
+                      >
+                        {correctionOpenKeys[item.resultKey] ? "Close correction" : "Is this correct?"}
+                      </button>
+                    </div>
+                    {correctionOpenKeys[item.resultKey] ? (
+                      <div className="scan-form">
+                        <label className="field">
+                          <span>Correction mode</span>
+                          <select
+                            value={corrections[item.resultKey]?.mode ?? "catalog"}
+                            onChange={(event) =>
+                              updateCorrection(item.resultKey, {
+                                mode: event.target.value === "draft" ? "draft" : "catalog",
+                              })
+                            }
+                          >
+                            <option value="catalog">Pick the correct catalog product</option>
+                            <option value="draft">Type the correct product name</option>
+                          </select>
+                        </label>
+                        {(corrections[item.resultKey]?.mode ?? "catalog") === "catalog" ? (
+                          <>
+                            <label className="field">
+                              <span>Catalog product</span>
+                              <select
+                                value={corrections[item.resultKey]?.selectedProductId ?? ""}
+                                onChange={(event) =>
+                                  updateCorrection(item.resultKey, {
+                                    selectedProductId: event.target.value,
+                                  })
+                                }
+                              >
+                                <option value="">Choose a product</option>
+                                {productCandidates.map((candidate) => (
+                                  <option key={candidate.id} value={candidate.id}>
+                                    {candidate.name} · {candidate.category}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <button
+                              className="button button-secondary"
+                              type="button"
+                              onClick={() => applyCatalogCorrection(item)}
+                            >
+                              Apply correction
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <label className="field">
+                              <span>Correct product name</span>
+                              <input
+                                type="text"
+                                value={corrections[item.resultKey]?.typedName ?? ""}
+                                onChange={(event) =>
+                                  updateCorrection(item.resultKey, {
+                                    typedName: event.target.value,
+                                  })
+                                }
+                                placeholder="Example: Papa blanca"
+                              />
+                            </label>
+                            <button
+                              className="button button-secondary"
+                              type="button"
+                              onClick={() => void applyDraftCorrection(item)}
+                              disabled={Boolean(creatingDraftKeys[item.resultKey])}
+                            >
+                              {creatingDraftKeys[item.resultKey] ? "Saving..." : "Create corrected draft"}
+                            </button>
+                          </>
+                        )}
+                        {corrections[item.resultKey]?.appliedLabel ? (
+                          <p className="status-ok">
+                            Current correction: {corrections[item.resultKey]?.appliedLabel}
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                     {!item.catalogMatchName && item.draftProduct ? (
