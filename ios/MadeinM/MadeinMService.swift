@@ -243,10 +243,20 @@ struct RecognitionPayload: Decodable {
     let items: [RecognizedItem]
 }
 
+struct DraftProductResponse: Decodable {
+    let created: Bool?
+    let existing: Bool?
+    let productId: UUID?
+    let name: String?
+    let status: String?
+    let error: String?
+}
+
 struct MadeinMService {
     private let summaryURL = URL(string: "https://jwqxshcyhzhnphlsgnnt.supabase.co/rest/v1/product_summary?select=id,name,category,origin_status,confidence_level,calories&order=name.asc")!
     private let catalogURL = URL(string: "https://jwqxshcyhzhnphlsgnnt.supabase.co/rest/v1/products?select=id,name,category,subcategory,brand_name,description,default_image_url,product_aliases(alias),product_images(image_url,is_primary,source_type),origins(origin_status,confidence_level,summary_reason,country_code,state_name)&status=eq.active&order=name.asc")!
     private let recognitionURL = URL(string: "https://www.estala.io/api/recognize")!
+    private let draftProductURL = URL(string: "https://www.estala.io/api/draft-products")!
     private let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3cXhzaGN5aHpobnBobHNnbm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MjcyMzQsImV4cCI6MjA5MDUwMzIzNH0.Gfn6daa78zHZHeRA502rf-zgEDpi1CNs_xH7cKVPssI"
 
     private let stateCoordinates: [String: (shortLabel: String, coordinate: CLLocationCoordinate2D)] = [
@@ -328,6 +338,48 @@ struct MadeinMService {
         }
 
         return try JSONDecoder().decode(RecognitionPayload.self, from: data)
+    }
+
+    func createDraftProduct(
+        name: String,
+        category: String,
+        subcategory: String?,
+        aliases: [String],
+        barcodeValue: String?,
+        reasoning: String,
+        visualGuess: String?
+    ) async throws -> DraftProductResponse {
+        var request = URLRequest(url: draftProductURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any?] = [
+            "name": name,
+            "category": category,
+            "subcategory": subcategory,
+            "aliases": aliases,
+            "barcodeValue": barcodeValue?.isEmpty == false ? barcodeValue : nil,
+            "reasoning": reasoning,
+            "visualGuess": visualGuess,
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body.compactMapValues { $0 })
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        let payload = try JSONDecoder().decode(DraftProductResponse.self, from: data)
+
+        if !(200 ..< 300).contains(httpResponse.statusCode) {
+            throw NSError(domain: "MadeinMDraftProduct", code: httpResponse.statusCode, userInfo: [
+                NSLocalizedDescriptionKey: payload.error ?? "Draft creation failed."
+            ])
+        }
+
+        return payload
     }
 
     func suggestProducts(query: String, from products: [ProductSummary]) -> [ProductSummary] {

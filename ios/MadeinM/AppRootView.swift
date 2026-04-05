@@ -323,6 +323,29 @@ private struct OriginsMapView: View {
 
 private struct ScanPrototypeView: View {
     let service: MadeinMService
+    struct ItemCorrectionState {
+        var mode: CorrectionMode = .catalog
+        var selectedProductId: UUID?
+        var typedName: String = ""
+        var appliedLabel: String?
+    }
+
+    enum CorrectionMode: String, CaseIterable, Identifiable {
+        case catalog
+        case draft
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .catalog:
+                return "Pick catalog product"
+            case .draft:
+                return "Type correct product"
+            }
+        }
+    }
+
     @State private var products: [ProductSummary] = []
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: Image?
@@ -333,6 +356,11 @@ private struct ScanPrototypeView: View {
     @State private var observedTextHint = ""
     @State private var ocrDetectedText: [String] = []
     @State private var recognizedItems: [RecognizedItem] = []
+    @State private var correctionStates: [String: ItemCorrectionState] = [:]
+    @State private var correctionOpenItemIDs: Set<String> = []
+    @State private var correctionMessages: [String: String] = [:]
+    @State private var correctionErrors: [String: String] = [:]
+    @State private var creatingDraftItemIDs: Set<String> = []
     @State private var isLoadingProducts = false
     @State private var isRecognizing = false
     @State private var errorMessage: String?
@@ -470,8 +498,23 @@ private struct ScanPrototypeView: View {
                         Text("Choose a photo and run recognition to see each detected grocery item from the image.")
                             .foregroundStyle(.secondary)
                     } else {
+                        HStack {
+                            let matchedCount = recognizedItems.filter { $0.suggestedProductId != nil }.count
+                            let unmatchedCount = recognizedItems.count - matchedCount
+                            OriginChip(text: "\(recognizedItems.count) items")
+                            OriginChip(text: "\(matchedCount) matched")
+                            OriginChip(text: "\(unmatchedCount) need review")
+                        }
+
                         ForEach(Array(recognizedItems.enumerated()), id: \.offset) { index, item in
                             let matchedProduct = products.first(where: { $0.id == item.suggestedProductId })
+                            let itemID = item.id
+                            let correction = correctionStates[itemID] ?? ItemCorrectionState(
+                                mode: .catalog,
+                                selectedProductId: item.suggestedProductId,
+                                typedName: item.visualGuess ?? "",
+                                appliedLabel: nil
+                            )
 
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("Item \(index + 1)")
@@ -505,6 +548,99 @@ private struct ScanPrototypeView: View {
 
                                 if !item.evidenceNeeded.isEmpty {
                                     FlowingAliasView(aliases: item.evidenceNeeded)
+                                }
+
+                                Button {
+                                    toggleCorrection(for: item)
+                                } label: {
+                                    Text(correctionOpenItemIDs.contains(itemID) ? "Close correction" : "Is this correct?")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(Color("BrandGreen"))
+
+                                if correctionOpenItemIDs.contains(itemID) {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        Picker("Correction mode", selection: Binding(
+                                            get: { correction.mode },
+                                            set: { newMode in
+                                                updateCorrectionState(for: itemID) { state in
+                                                    state.mode = newMode
+                                                }
+                                            }
+                                        )) {
+                                            ForEach(CorrectionMode.allCases) { mode in
+                                                Text(mode.label).tag(mode)
+                                            }
+                                        }
+                                        .pickerStyle(.segmented)
+
+                                        if correction.mode == .catalog {
+                                            Picker("Catalog product", selection: Binding(
+                                                get: { correction.selectedProductId },
+                                                set: { newValue in
+                                                    updateCorrectionState(for: itemID) { state in
+                                                        state.selectedProductId = newValue
+                                                    }
+                                                }
+                                            )) {
+                                                Text("Choose a product").tag(Optional<UUID>.none)
+                                                ForEach(products) { product in
+                                                    Text("\(product.name) · \(product.category)").tag(Optional(product.id))
+                                                }
+                                            }
+                                            .pickerStyle(.menu)
+
+                                            Button {
+                                                applyCatalogCorrection(for: item)
+                                            } label: {
+                                                Text("Apply correction")
+                                                    .frame(maxWidth: .infinity)
+                                            }
+                                            .buttonStyle(.bordered)
+                                            .tint(Color("BrandGreen"))
+                                        } else {
+                                            TextField("Example: Papa blanca", text: Binding(
+                                                get: { correction.typedName },
+                                                set: { newValue in
+                                                    updateCorrectionState(for: itemID) { state in
+                                                        state.typedName = newValue
+                                                    }
+                                                }
+                                            ))
+                                            .textInputAutocapitalization(.words)
+                                            .padding()
+                                            .background(.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                                            Button {
+                                                Task {
+                                                    await createCorrectedDraft(for: item)
+                                                }
+                                            } label: {
+                                                Text(creatingDraftItemIDs.contains(itemID) ? "Saving..." : "Create corrected draft")
+                                                    .frame(maxWidth: .infinity)
+                                            }
+                                            .buttonStyle(.bordered)
+                                            .tint(Color("BrandGreen"))
+                                            .disabled(creatingDraftItemIDs.contains(itemID))
+                                        }
+
+                                        if let appliedLabel = correction.appliedLabel {
+                                            Text("Current correction: \(appliedLabel)")
+                                                .foregroundStyle(Color("BrandGreen"))
+                                        }
+
+                                        if let message = correctionMessages[itemID] {
+                                            Text(message)
+                                                .foregroundStyle(Color("BrandGreen"))
+                                        }
+
+                                        if let error = correctionErrors[itemID] {
+                                            Text(error)
+                                                .foregroundStyle(.red)
+                                        }
+                                    }
+                                    .padding(.top, 6)
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -561,6 +697,10 @@ private struct ScanPrototypeView: View {
                 statusMessage = "Image loaded. Run recognition to detect multiple products in the photo."
                 recognizedItems = []
                 ocrDetectedText = []
+                correctionStates = [:]
+                correctionOpenItemIDs = []
+                correctionMessages = [:]
+                correctionErrors = [:]
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -589,6 +729,20 @@ private struct ScanPrototypeView: View {
 
             recognizedItems = payload.items
             ocrDetectedText = payload.detectedText
+            correctionStates = Dictionary(uniqueKeysWithValues: payload.items.map { item in
+                (
+                    item.id,
+                    ItemCorrectionState(
+                        mode: .catalog,
+                        selectedProductId: item.suggestedProductId,
+                        typedName: item.visualGuess ?? "",
+                        appliedLabel: nil
+                    )
+                )
+            })
+            correctionOpenItemIDs = []
+            correctionMessages = [:]
+            correctionErrors = [:]
             statusMessage = payload.items.isEmpty
                 ? "No products were recognized confidently from this photo."
                 : "Detected \(payload.items.count) product\(payload.items.count == 1 ? "" : "s") from this image."
@@ -597,6 +751,94 @@ private struct ScanPrototypeView: View {
         }
 
         isRecognizing = false
+    }
+
+    private func toggleCorrection(for item: RecognizedItem) {
+        if correctionOpenItemIDs.contains(item.id) {
+            correctionOpenItemIDs.remove(item.id)
+        } else {
+            correctionOpenItemIDs.insert(item.id)
+        }
+    }
+
+    private func updateCorrectionState(for itemID: String, mutate: (inout ItemCorrectionState) -> Void) {
+        var state = correctionStates[itemID] ?? ItemCorrectionState()
+        mutate(&state)
+        correctionStates[itemID] = state
+    }
+
+    private func applyCatalogCorrection(for item: RecognizedItem) {
+        let itemID = item.id
+        guard let selectedProductId = correctionStates[itemID]?.selectedProductId,
+              let selectedProduct = products.first(where: { $0.id == selectedProductId }) else {
+            correctionErrors[itemID] = "Choose the correct catalog product first."
+            return
+        }
+
+        if let index = recognizedItems.firstIndex(where: { $0.id == itemID }) {
+            recognizedItems[index] = RecognizedItem(
+                suggestedProductId: selectedProduct.id,
+                confidence: item.confidence,
+                reasoning: item.reasoning,
+                visualGuess: item.visualGuess,
+                detectedText: item.detectedText,
+                originAssessment: item.originAssessment,
+                originExplanation: item.originExplanation,
+                evidenceNeeded: item.evidenceNeeded,
+                draftProduct: item.draftProduct
+            )
+        }
+
+        correctionErrors[itemID] = nil
+        correctionMessages[itemID] = "Marked as corrected: \(selectedProduct.name)."
+        updateCorrectionState(for: itemID) { state in
+            state.appliedLabel = selectedProduct.name
+        }
+        correctionOpenItemIDs.remove(itemID)
+    }
+
+    private func createCorrectedDraft(for item: RecognizedItem) async {
+        let itemID = item.id
+        let correctedName = correctionStates[itemID]?.typedName.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard !correctedName.isEmpty else {
+            correctionErrors[itemID] = "Type the correct product name first."
+            return
+        }
+
+        creatingDraftItemIDs.insert(itemID)
+        correctionErrors[itemID] = nil
+
+        do {
+            let payload = try await service.createDraftProduct(
+                name: correctedName,
+                category: item.draftProduct?.category ?? "produce",
+                subcategory: item.draftProduct?.subcategory,
+                aliases: Array(
+                    Set(
+                        [correctedName] +
+                        (item.draftProduct?.aliases ?? []) +
+                        (item.visualGuess.map { [$0] } ?? [])
+                    )
+                ),
+                barcodeValue: barcodeValue,
+                reasoning: item.reasoning,
+                visualGuess: correctedName
+            )
+
+            let label = payload.name ?? correctedName
+            correctionMessages[itemID] = payload.existing == true
+                ? "A matching product already exists: \(label) (\(payload.status ?? "active"))."
+                : "Draft product created successfully: \(label) (\(payload.status ?? "draft"))."
+            updateCorrectionState(for: itemID) { state in
+                state.appliedLabel = label
+            }
+            correctionOpenItemIDs.remove(itemID)
+        } catch {
+            correctionErrors[itemID] = error.localizedDescription
+        }
+
+        creatingDraftItemIDs.remove(itemID)
     }
 }
 
