@@ -22,7 +22,8 @@ export default function RootLayout({
           <header className="site-header">
             <div className="site-header-inner">
               <Link className="site-brand" href="/">
-                MadeinM
+                <span>MadeinM</span>
+                <small>madeinm.estala.io</small>
               </Link>
 
               <nav className="site-menu" aria-label="Primary">
@@ -41,8 +42,7 @@ export default function RootLayout({
               <div>
                 <strong>MadeinM</strong>
                 <p>
-                  Original application code, brand presentation, review workflows, and curated
-                  content are proprietary to Estala unless otherwise noted.
+                  Powered by estala.io. All rights reserved in Mexico and the United States.
                 </p>
               </div>
 
@@ -50,7 +50,8 @@ export default function RootLayout({
                 <strong>IP Notice</strong>
                 <p>
                   Third-party trademarks, market data, retailer names, and external product
-                  references remain the property of their respective owners.
+                  references remain the property of their respective owners. Official product
+                  origin remains subject to evidence and review.
                 </p>
               </div>
 
