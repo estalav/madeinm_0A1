@@ -26,11 +26,15 @@ with upserted_products as (
     ('Jitomate Saladet', 'produce', 'vegetable', null, 'Tomate de uso comun en cocina mexicana.', false, null, 'active'),
     ('Aguacate Hass', 'produce', 'fruit', null, 'Aguacate popular para guacamole y consumo diario.', false, null, 'active'),
     ('Platano Cavendish', 'produce', 'fruit', null, 'Platano fresco de consumo comun. Puede provenir de oferta nacional o importada segun temporada y proveedor.', false, null, 'active'),
+    ('Organic Yellow Bell Pepper', 'produce', 'vegetable', null, 'Pimiento morron amarillo organico vendido a granel o por pieza.', false, null, 'active'),
     ('Cebolla Blanca', 'produce', 'vegetable', null, 'Cebolla blanca de uso comun en platillos mexicanos.', false, null, 'active'),
     ('Limon Mexicano', 'produce', 'citrus', null, 'Limon pequeno de sabor intenso, comun en mercados mexicanos.', false, null, 'active'),
     ('Nopal Fresco', 'produce', 'cactus', null, 'Penca de nopal para ensaladas, guisados y asados.', false, null, 'active'),
     ('Mango Ataulfo', 'produce', 'fruit', null, 'Mango dulce originario y ampliamente cultivado en Mexico.', false, null, 'active'),
     ('Papaya Maradol', 'produce', 'fruit', null, 'Papaya de consumo frecuente en hogares mexicanos.', false, null, 'active'),
+    ('Zucchini Organic', 'produce', 'vegetable', null, 'Calabacita verde organica de uso comun en cocina casera.', false, null, 'active'),
+    ('Broccoli Crown', 'produce', 'vegetable', null, 'Corona de brocoli fresco para vapor, salteados y ensaladas.', false, null, 'active'),
+    ('Carrot Bunch', 'produce', 'vegetable', null, 'Zanahoria fresca vendida en manojo o a granel.', false, null, 'active'),
     ('Cilantro Fresco', 'produce', 'herb', null, 'Hierba aromatica comun en salsas, caldos y tacos.', false, null, 'active'),
     ('Parsley (flat-leaf / Italian parsley) bunch', 'produce', 'herb', null, 'Ramo de perejil fresco de hoja plana, comun en cocina casera y de mercado.', false, null, 'active'),
     ('Chile Serrano', 'produce', 'chile', null, 'Chile fresco para salsas y condimentos.', false, null, 'active'),
@@ -53,11 +57,29 @@ join (
     ('Platano Cavendish', 'banana'),
     ('Platano Cavendish', 'bananas'),
     ('Platano Cavendish', 'platano cavendish'),
+    ('Organic Yellow Bell Pepper', 'yellow bell pepper'),
+    ('Organic Yellow Bell Pepper', 'organic yellow bell pepper'),
+    ('Organic Yellow Bell Pepper', 'bell pepper'),
+    ('Organic Yellow Bell Pepper', 'pimiento amarillo'),
+    ('Organic Yellow Bell Pepper', 'pimiento morron amarillo'),
+    ('Organic Yellow Bell Pepper', 'pimiento'),
     ('Cebolla Blanca', 'cebolla'),
     ('Limon Mexicano', 'limon'),
     ('Nopal Fresco', 'nopal'),
     ('Mango Ataulfo', 'mango'),
     ('Papaya Maradol', 'papaya'),
+    ('Zucchini Organic', 'zucchini'),
+    ('Zucchini Organic', 'organic zucchini'),
+    ('Zucchini Organic', 'squash zucchini organic'),
+    ('Zucchini Organic', 'calabacita'),
+    ('Zucchini Organic', 'calabacita verde'),
+    ('Broccoli Crown', 'broccoli'),
+    ('Broccoli Crown', 'brocoli'),
+    ('Broccoli Crown', 'broccoli crown'),
+    ('Carrot Bunch', 'carrot'),
+    ('Carrot Bunch', 'carrots'),
+    ('Carrot Bunch', 'zanahoria'),
+    ('Carrot Bunch', 'zanahorias'),
     ('Cilantro Fresco', 'cilantro'),
     ('Parsley (flat-leaf / Italian parsley) bunch', 'parsley'),
     ('Parsley (flat-leaf / Italian parsley) bunch', 'italian parsley'),
@@ -90,7 +112,7 @@ select
     else 'alta'::public.confidence_level
   end,
   case
-    when p.name = 'Platano Cavendish' then null
+    when p.name in ('Platano Cavendish', 'Organic Yellow Bell Pepper', 'Zucchini Organic', 'Broccoli Crown', 'Carrot Bunch') then null
     else 'MX'
   end,
   case
@@ -103,7 +125,7 @@ select
   end,
   null,
   case
-    when p.name = 'Platano Cavendish' then 'Producto agregado al piloto para reconocimiento, pero su origen no debe darse por confirmado sin evidencia adicional del proveedor o etiqueta.'
+    when p.name in ('Platano Cavendish', 'Organic Yellow Bell Pepper', 'Zucchini Organic', 'Broccoli Crown', 'Carrot Bunch') then 'Producto agregado al piloto para reconocimiento, pero su origen no debe darse por confirmado sin evidencia adicional del proveedor o etiqueta.'
     when p.name = 'Parsley (flat-leaf / Italian parsley) bunch' then 'Producto agregado al piloto para reconocimiento multiobjeto. Su origen no debe darse por confirmado sin evidencia adicional del proveedor o etiqueta.'
     when p.name = 'Mango Ataulfo' then 'Producto ampliamente asociado con cultivo nacional y registro curado inicial.'
     when p.name = 'Aguacate Hass' then 'Producto comun de origen mexicano en el piloto con validacion curada inicial.'
@@ -128,7 +150,7 @@ set
   summary_reason = 'Producto agregado al piloto para reconocimiento, pero su origen no debe darse por confirmado sin evidencia adicional del proveedor o etiqueta.'
 from public.products p
 where o.product_id = p.id
-  and p.name = 'Platano Cavendish';
+  and p.name in ('Platano Cavendish', 'Organic Yellow Bell Pepper', 'Zucchini Organic', 'Broccoli Crown', 'Carrot Bunch');
 
 -- Origin evidence
 insert into public.origin_evidence (
@@ -215,11 +237,15 @@ join (
     ('Jitomate Saladet', '100 g', 18, 0.9, 3.9, 0.2, 1.2, 2.6, 'Jitomate fresco'),
     ('Aguacate Hass', '100 g', 160, 2.0, 8.5, 14.7, 6.7, 0.7, 'Aguacate fresco'),
     ('Platano Cavendish', '100 g', 89, 1.1, 22.8, 0.3, 2.6, 12.2, 'Platano fresco'),
+    ('Organic Yellow Bell Pepper', '100 g', 27, 1.0, 6.3, 0.2, 0.9, 4.2, 'Pimiento morron amarillo fresco'),
     ('Cebolla Blanca', '100 g', 40, 1.1, 9.3, 0.1, 1.7, 4.2, 'Cebolla fresca'),
     ('Limon Mexicano', '100 g', 30, 0.7, 10.5, 0.2, 2.8, 1.7, 'Limon fresco'),
     ('Nopal Fresco', '100 g', 16, 1.3, 3.3, 0.1, 2.2, 1.5, 'Nopal fresco'),
     ('Mango Ataulfo', '100 g', 60, 0.8, 15.0, 0.4, 1.6, 13.7, 'Mango fresco'),
     ('Papaya Maradol', '100 g', 43, 0.5, 10.8, 0.3, 1.7, 7.8, 'Papaya fresca'),
+    ('Zucchini Organic', '100 g', 17, 1.2, 3.1, 0.3, 1.0, 2.5, 'Calabacita verde fresca'),
+    ('Broccoli Crown', '100 g', 34, 2.8, 6.6, 0.4, 2.6, 1.7, 'Brocoli fresco'),
+    ('Carrot Bunch', '100 g', 41, 0.9, 9.6, 0.2, 2.8, 4.7, 'Zanahoria fresca'),
     ('Cilantro Fresco', '100 g', 23, 2.1, 3.7, 0.5, 2.8, 0.9, 'Cilantro fresco'),
     ('Parsley (flat-leaf / Italian parsley) bunch', '100 g', 36, 3.0, 6.3, 0.8, 3.3, 0.9, 'Perejil fresco'),
     ('Chile Serrano', '100 g', 32, 1.7, 7.5, 0.4, 3.7, 4.0, 'Chile serrano fresco'),

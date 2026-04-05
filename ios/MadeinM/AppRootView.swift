@@ -550,10 +550,13 @@ private struct ScanPrototypeView: View {
                                     FlowingAliasView(aliases: item.evidenceNeeded)
                                 }
 
+                                Text(correctionOpenItemIDs.contains(itemID) ? "Correction options" : "Need to fix this item?")
+                                    .font(.headline)
+
                                 Button {
                                     toggleCorrection(for: item)
                                 } label: {
-                                    Text(correctionOpenItemIDs.contains(itemID) ? "Close correction" : "Is this correct?")
+                                    Text(correctionOpenItemIDs.contains(itemID) ? "Hide correction options" : "Correct this item")
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.bordered)
@@ -628,18 +631,29 @@ private struct ScanPrototypeView: View {
                                         if let appliedLabel = correction.appliedLabel {
                                             Text("Current correction: \(appliedLabel)")
                                                 .foregroundStyle(Color("BrandGreen"))
+                                                .padding(14)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .background(Color("BrandGreen").opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                         }
 
                                         if let message = correctionMessages[itemID] {
                                             Text(message)
                                                 .foregroundStyle(Color("BrandGreen"))
+                                                .padding(14)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .background(Color("BrandGreen").opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                         }
 
                                         if let error = correctionErrors[itemID] {
                                             Text(error)
                                                 .foregroundStyle(.red)
+                                                .padding(14)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                         }
                                     }
+                                    .padding(14)
+                                    .background(Color("BrandSand").opacity(0.12), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                                     .padding(.top, 6)
                                 }
                             }
@@ -830,6 +844,7 @@ private struct ScanPrototypeView: View {
             correctionMessages[itemID] = payload.existing == true
                 ? "A matching product already exists: \(label) (\(payload.status ?? "active"))."
                 : "Draft product created successfully: \(label) (\(payload.status ?? "draft"))."
+            correctionErrors[itemID] = nil
             updateCorrectionState(for: itemID) { state in
                 state.appliedLabel = label
             }
