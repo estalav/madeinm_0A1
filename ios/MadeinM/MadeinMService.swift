@@ -428,7 +428,7 @@ struct MadeinMService {
     }
 
     private func prepareRecognitionDataURL(from image: UIImage) -> String? {
-        let maxDimension: CGFloat = 1400
+        let maxDimension: CGFloat = 1100
         let longestSide = max(image.size.width, image.size.height)
         let scale = min(1, maxDimension / max(longestSide, 1))
         let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
@@ -437,10 +437,19 @@ struct MadeinMService {
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
 
-        guard let jpegData = resized.jpegData(compressionQuality: 0.76) else {
+        let qualities: [CGFloat] = [0.68, 0.56, 0.46]
+        let maxBytes = 900_000
+
+        for quality in qualities {
+            if let jpegData = resized.jpegData(compressionQuality: quality), jpegData.count <= maxBytes {
+                return "data:image/jpeg;base64,\(jpegData.base64EncodedString())"
+            }
+        }
+
+        guard let fallbackData = resized.jpegData(compressionQuality: 0.38) else {
             return nil
         }
 
-        return "data:image/jpeg;base64,\(jpegData.base64EncodedString())"
+        return "data:image/jpeg;base64,\(fallbackData.base64EncodedString())"
     }
 }
