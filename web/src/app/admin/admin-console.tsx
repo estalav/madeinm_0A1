@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
 type DraftRow = {
@@ -315,6 +316,10 @@ export function AdminConsole({ initialDrafts }: AdminConsoleProps) {
             >
               {isPending ? "Loading..." : "Load draft products"}
             </button>
+
+            <Link className="button button-secondary" href="/admin/usage">
+              Open usage dashboard
+            </Link>
 
             <label className="field">
               <span>Search drafts</span>
