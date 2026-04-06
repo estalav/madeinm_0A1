@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ProductRow = {
@@ -27,17 +29,106 @@ const confidenceLabels: Record<string, string> = {
   baja: "Baja confianza",
 };
 
-export default async function Home() {
-  const supabase = createSupabaseServerClient();
+const isMadeinmHost = (host: string) => host.startsWith("madeinm.");
 
-  const { data, error } = await supabase
-    .from("product_summary")
-    .select("id, name, category, origin_status, confidence_level, calories")
-    .order("name", { ascending: true })
-    .limit(6);
+function EstalaHub() {
+  return (
+    <main className="estala-home">
+      <section className="estala-hero">
+        <div className="estala-copy">
+          <p className="estala-kicker">estala.io</p>
+          <h1>A quiet home for projects, images, and independent work.</h1>
+          <p className="estala-intro">
+            Estala is the parent space. From here, visitors can move into focused projects:
+            visual work, experiments, and practical products built one at a time.
+          </p>
 
-  const products = (data ?? []) as ProductRow[];
+          <div className="estala-actions">
+            <Link className="button button-primary" href="/art">
+              Explore Art
+            </Link>
+            <a className="button button-secondary" href="https://madeinm.estala.io">
+              Open MadeinM
+            </a>
+          </div>
+        </div>
 
+        <div className="estala-hero-media">
+          <Image
+            src="/estala/hero-skyline.jpeg"
+            alt="San Francisco skyline view from a curved overlook."
+            fill
+            priority
+            sizes="(max-width: 960px) 100vw, 42vw"
+            className="estala-hero-image"
+          />
+        </div>
+      </section>
+
+      <section className="estala-note">
+        <p>
+          The direction is minimalist and image-led: white space, editorial typography, and a
+          small number of destinations instead of a crowded portal.
+        </p>
+      </section>
+
+      <section className="estala-projects">
+        <article className="estala-project-card estala-project-card-art">
+          <div className="estala-project-image">
+            <Image
+              src="/estala/jellyfish.jpeg"
+              alt="Blue jellyfish photo used as a visual anchor for the art project."
+              fill
+              sizes="(max-width: 960px) 100vw, 36vw"
+              className="estala-card-image"
+            />
+          </div>
+          <div className="estala-project-copy">
+            <span>Project 01</span>
+            <h2>Art from Estala</h2>
+            <p>
+              A space for photography, image studies, and future print or installation work. The
+              first version can be quiet, visual, and intentionally spare.
+            </p>
+            <Link className="button button-secondary" href="/art">
+              View art mockup
+            </Link>
+          </div>
+        </article>
+
+        <article className="estala-project-card estala-project-card-product">
+          <div className="estala-project-copy">
+            <span>Project 02</span>
+            <h2>MadeinM</h2>
+            <p>
+              A live product that helps people identify produce, understand origin confidence,
+              and support local markets in Mexico with clearer evidence.
+            </p>
+            <ul className="estala-project-list">
+              <li>Multi-object scan</li>
+              <li>Origin confidence with context</li>
+              <li>Catalog, admin review, and iOS app</li>
+            </ul>
+            <a className="button button-primary" href="https://madeinm.estala.io">
+              Enter MadeinM
+            </a>
+          </div>
+          <div className="estala-project-meta">
+            <strong>Live now</strong>
+            <p>madeinm.estala.io</p>
+          </div>
+        </article>
+      </section>
+    </main>
+  );
+}
+
+type MadeinMHomeProps = {
+  products: ProductRow[];
+  errorMessage: string | null;
+};
+
+function MadeinMHome({ products, errorMessage }: MadeinMHomeProps) {
   return (
     <main className="home-shell">
       <section className="hero">
@@ -160,14 +251,14 @@ export default async function Home() {
           <h2>Primeros productos curados del piloto en Central de Abasto CDMX.</h2>
         </div>
 
-        {error ? (
+        {errorMessage ? (
           <div className="error-card">
             <h3>No pudimos cargar el catalogo</h3>
             <p>
               La pagina sigue lista, pero la consulta en Supabase no respondio en este
               momento.
             </p>
-            <pre>{error.message}</pre>
+            <pre>{errorMessage}</pre>
           </div>
         ) : (
           <div className="catalog-grid">
@@ -213,4 +304,23 @@ export default async function Home() {
       </section>
     </main>
   );
+}
+
+export default async function Home() {
+  const host = (await headers()).get("host") ?? "";
+
+  if (!isMadeinmHost(host)) {
+    return <EstalaHub />;
+  }
+
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("product_summary")
+    .select("id, name, category, origin_status, confidence_level, calories")
+    .order("name", { ascending: true })
+    .limit(6);
+
+  const products = (data ?? []) as ProductRow[];
+
+  return <MadeinMHome products={products} errorMessage={error?.message ?? null} />;
 }

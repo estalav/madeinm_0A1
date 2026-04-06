@@ -62,6 +62,192 @@ select {
   gap: 28px;
 }
 
+.estala-site-shell .site-header-inner,
+.estala-site-shell .site-footer-inner {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(17, 43, 77, 0.08);
+  color: #203047;
+}
+
+.estala-site-shell .site-brand {
+  color: #111827;
+}
+
+.estala-site-shell .site-brand small,
+.estala-site-shell .site-footer-inner p {
+  color: rgba(32, 48, 71, 0.68);
+}
+
+.estala-site-shell .site-menu a {
+  color: rgba(17, 24, 39, 0.86);
+  border-color: rgba(17, 43, 77, 0.08);
+  background: rgba(244, 247, 251, 0.9);
+}
+
+.estala-site-shell .site-menu a:hover {
+  background: rgba(228, 235, 243, 0.95);
+}
+
+.estala-home,
+.art-shell {
+  width: min(1200px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 28px 0 72px;
+  display: grid;
+  gap: 28px;
+}
+
+.estala-hero,
+.art-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  gap: 28px;
+  padding: 28px;
+  border-radius: 36px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(17, 43, 77, 0.08);
+  box-shadow: 0 20px 60px rgba(7, 18, 31, 0.08);
+}
+
+.estala-copy,
+.art-copy {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.estala-kicker {
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8b5e3c;
+  font-weight: 700;
+}
+
+.estala-copy h1,
+.art-copy h1 {
+  font-size: clamp(2.8rem, 7vw, 5.8rem);
+  line-height: 0.95;
+  color: #101a29;
+  max-width: 10ch;
+}
+
+.estala-intro,
+.art-copy p,
+.estala-note p,
+.estala-project-copy p,
+.art-grid p {
+  color: #5d6775;
+  font-size: 1.06rem;
+  line-height: 1.8;
+}
+
+.estala-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.estala-hero-media,
+.art-media {
+  position: relative;
+  min-height: 520px;
+  border-radius: 32px;
+  overflow: hidden;
+  background: #edf2f7;
+}
+
+.estala-hero-image,
+.estala-card-image,
+.art-image {
+  object-fit: cover;
+}
+
+.estala-note {
+  padding: 0 8px;
+}
+
+.estala-projects,
+.art-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.estala-project-card,
+.art-grid article {
+  border-radius: 32px;
+  border: 1px solid rgba(17, 43, 77, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 20px 60px rgba(7, 18, 31, 0.08);
+  overflow: hidden;
+}
+
+.estala-project-card-art {
+  display: grid;
+  grid-template-rows: minmax(280px, 360px) auto;
+}
+
+.estala-project-card-product {
+  display: grid;
+  gap: 18px;
+  padding: 26px;
+  align-content: start;
+}
+
+.estala-project-image {
+  position: relative;
+  min-height: 320px;
+}
+
+.estala-project-copy {
+  display: grid;
+  gap: 16px;
+  padding: 24px 26px 26px;
+}
+
+.estala-project-copy span,
+.art-grid article span {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8b5e3c;
+  font-weight: 700;
+}
+
+.estala-project-copy h2,
+.art-grid article h2 {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  line-height: 1.05;
+  color: #101a29;
+}
+
+.estala-project-list {
+  display: grid;
+  gap: 10px;
+  color: #203047;
+  padding-left: 18px;
+}
+
+.estala-project-meta {
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #123154 0%, #0f2741 100%);
+  color: #f4e7c8;
+}
+
+.estala-project-meta strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.art-grid article {
+  padding: 26px;
+}
+
 .site-shell {
   min-height: 100vh;
   display: flex;
