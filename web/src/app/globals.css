@@ -107,7 +107,7 @@ select {
 .estala-hero,
 .art-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  grid-template-columns: 1fr;
   gap: 28px;
   padding: 28px;
   border-radius: 36px;
@@ -116,11 +116,29 @@ select {
   box-shadow: 0 20px 60px rgba(7, 18, 31, 0.08);
 }
 
+.estala-hero-background {
+  min-height: 640px;
+  align-items: end;
+  background:
+    linear-gradient(180deg, rgba(250, 249, 245, 0.28) 0%, rgba(250, 249, 245, 0.38) 18%, rgba(250, 249, 245, 0.82) 58%, rgba(250, 249, 245, 0.96) 100%),
+    url("/estala/hero-background.jpeg") center top / cover no-repeat;
+}
+
 .estala-copy,
 .art-copy {
   display: grid;
   align-content: center;
   gap: 18px;
+}
+
+.estala-copy-panel {
+  width: min(100%, 640px);
+  padding: 26px 28px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(17, 43, 77, 0.08);
+  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.05);
+  backdrop-filter: blur(12px);
 }
 
 .estala-kicker {
@@ -1165,6 +1183,8 @@ select {
 }
 
 @media (max-width: 920px) {
+  .estala-hero,
+  .art-hero,
   .hero,
   .future-section,
   .mission-band,
@@ -1186,6 +1206,18 @@ select {
     align-items: stretch;
   }
 
+  .estala-hero-background {
+    min-height: 560px;
+    padding: 22px;
+    align-items: end;
+    background-position: center center;
+  }
+
+  .estala-copy-panel {
+    width: min(100%, 560px);
+    padding: 22px 22px 24px;
+  }
+
   .hero h1,
   .section-heading h2,
   .future-copy h2,
@@ -1201,6 +1233,15 @@ select {
     gap: 18px;
   }
 
+  .estala-home,
+  .art-shell {
+    width: min(100% - 20px, 1200px);
+    padding-top: 16px;
+    gap: 18px;
+  }
+
+  .estala-hero,
+  .art-hero,
   .hero,
   .how-it-works,
   .catalog-section,
@@ -1210,6 +1251,34 @@ select {
   .scan-hero {
     padding: 20px;
     border-radius: 24px;
+  }
+
+  .estala-hero-background {
+    min-height: 520px;
+    padding: 18px;
+    background-position: center top;
+  }
+
+  .estala-copy-panel {
+    width: 100%;
+    padding: 18px;
+    border-radius: 22px;
+    background: rgba(250, 249, 245, 0.84);
+  }
+
+  .estala-copy h1,
+  .art-copy h1 {
+    font-size: clamp(1.9rem, 10.5vw, 2.9rem);
+    max-width: 12ch;
+  }
+
+  .estala-intro,
+  .art-copy p,
+  .estala-note p,
+  .estala-project-copy p,
+  .art-grid p {
+    font-size: 0.95rem;
+    line-height: 1.62;
   }
 
   .hero-points {

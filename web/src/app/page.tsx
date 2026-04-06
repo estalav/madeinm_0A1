@@ -34,8 +34,8 @@ const isMadeinmHost = (host: string) => host.startsWith("madeinm.");
 function EstalaHub() {
   return (
     <main className="estala-home">
-      <section className="estala-hero">
-        <div className="estala-copy">
+      <section className="estala-hero estala-hero-background">
+        <div className="estala-copy estala-copy-panel">
           <p className="estala-kicker">estala.io</p>
           <h1>A quiet home for projects, images, and independent work.</h1>
           <p className="estala-intro">
@@ -51,17 +51,6 @@ function EstalaHub() {
               Open MadeinM
             </a>
           </div>
-        </div>
-
-        <div className="estala-hero-media">
-          <Image
-            src="/estala/hero-skyline.jpeg"
-            alt="San Francisco skyline view from a curved overlook."
-            fill
-            priority
-            sizes="(max-width: 960px) 100vw, 42vw"
-            className="estala-hero-image"
-          />
         </div>
       </section>
 
