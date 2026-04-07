@@ -255,8 +255,8 @@ struct DraftProductResponse: Decodable {
 struct MadeinMService {
     private let summaryURL = URL(string: "https://jwqxshcyhzhnphlsgnnt.supabase.co/rest/v1/product_summary?select=id,name,category,origin_status,confidence_level,calories&order=name.asc")!
     private let catalogURL = URL(string: "https://jwqxshcyhzhnphlsgnnt.supabase.co/rest/v1/products?select=id,name,category,subcategory,brand_name,description,default_image_url,product_aliases(alias),product_images(image_url,is_primary,source_type),origins(origin_status,confidence_level,summary_reason,country_code,state_name)&status=eq.active&order=name.asc")!
-    private let recognitionURL = URL(string: "https://www.estala.io/api/recognize")!
-    private let draftProductURL = URL(string: "https://www.estala.io/api/draft-products")!
+    private let recognitionURL = URL(string: "https://madeinm.estala.io/api/recognize")!
+    private let draftProductURL = URL(string: "https://madeinm.estala.io/api/draft-products")!
     private let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3cXhzaGN5aHpobnBobHNnbm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MjcyMzQsImV4cCI6MjA5MDUwMzIzNH0.Gfn6daa78zHZHeRA502rf-zgEDpi1CNs_xH7cKVPssI"
 
     private let stateCoordinates: [String: (shortLabel: String, coordinate: CLLocationCoordinate2D)] = [

@@ -69,7 +69,7 @@ export default async function RootLayout({
               <div>
                 <strong>{madeinmHost ? "MadeinM" : "Estala"}</strong>
                 <p>
-                  Powered by estala.io. All rights reserved in Mexico and the United States.
+                  Powered by estala.com. All rights reserved in Mexico and the United States.
                 </p>
               </div>
 
