@@ -399,6 +399,33 @@ create table public.admin_reviews (
 
 create index idx_admin_reviews_run on public.admin_reviews (classification_run_id);
 
+create table public.recognition_feedback (
+  id uuid primary key default gen_random_uuid(),
+  submitted_by_user_id uuid references public.profiles(id) on delete set null,
+  session_type text not null default 'guest' check (session_type in ('guest', 'authenticated')),
+  source_surface text not null default 'web_scan_guest',
+  guessed_product_id uuid references public.products(id) on delete set null,
+  guessed_product_name text,
+  corrected_product_id uuid references public.products(id) on delete set null,
+  corrected_product_name text,
+  correction_mode text not null check (correction_mode in ('catalog', 'draft')),
+  visual_guess text,
+  barcode_value text,
+  origin_assessment text,
+  origin_explanation text,
+  reasoning text,
+  detected_text text,
+  market_context text,
+  vendor_origin_hint text,
+  observed_text_hint text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+create index idx_recognition_feedback_created_at on public.recognition_feedback (created_at desc);
+create index idx_recognition_feedback_corrected_product on public.recognition_feedback (corrected_product_id);
+create index idx_recognition_feedback_guessed_product on public.recognition_feedback (guessed_product_id);
+
 -- User engagement
 
 create table public.user_favorites (

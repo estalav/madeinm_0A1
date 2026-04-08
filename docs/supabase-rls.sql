@@ -112,6 +112,7 @@ grant all on public.reward_events to authenticated;
 grant all on public.user_badges to authenticated;
 grant all on public.admin_reviews to authenticated;
 grant all on public.ai_usage_logs to authenticated;
+grant all on public.recognition_feedback to authenticated;
 
 alter table public.profiles enable row level security;
 alter table public.products enable row level security;
@@ -134,6 +135,7 @@ alter table public.reward_events enable row level security;
 alter table public.badges enable row level security;
 alter table public.user_badges enable row level security;
 alter table public.ai_usage_logs enable row level security;
+alter table public.recognition_feedback enable row level security;
 
 -- Profiles
 
@@ -259,6 +261,31 @@ with check (public.is_admin());
 
 create policy "ai usage logs are deletable by admins"
 on public.ai_usage_logs
+for delete
+to authenticated
+using (public.is_admin());
+
+create policy "recognition feedback is readable by admins"
+on public.recognition_feedback
+for select
+to authenticated
+using (public.is_admin());
+
+create policy "recognition feedback is writable by admins"
+on public.recognition_feedback
+for insert
+to authenticated
+with check (public.is_admin());
+
+create policy "recognition feedback is updateable by admins"
+on public.recognition_feedback
+for update
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+create policy "recognition feedback is deletable by admins"
+on public.recognition_feedback
 for delete
 to authenticated
 using (public.is_admin());

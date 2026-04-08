@@ -572,7 +572,51 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
     });
   }
 
-  function applyCatalogCorrection(item: GuestResultItem) {
+  async function persistRecognitionFeedback(
+    item: GuestResultItem,
+    correction: {
+      correctionMode: "catalog" | "draft";
+      correctedProductId?: string | null;
+      correctedProductName: string;
+      metadata?: Record<string, unknown>;
+    },
+  ) {
+    const response = await fetch("/api/correction-feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sessionType: userId ? "authenticated" : "guest",
+        sourceSurface: userId ? "web_scan_authenticated" : "web_scan_guest",
+        guessedProductId: item.suggestedProductId,
+        guessedProductName: item.catalogMatchName ?? item.visualGuess ?? null,
+        correctedProductId: correction.correctedProductId ?? null,
+        correctedProductName: correction.correctedProductName,
+        correctionMode: correction.correctionMode,
+        visualGuess: item.visualGuess,
+        barcodeValue: barcodeValue || null,
+        originAssessment: item.originAssessment,
+        originExplanation: item.originExplanation,
+        reasoning: item.reasoning,
+        detectedText: item.detectedText.join("\n"),
+        marketContext: marketContext.trim() || null,
+        vendorOriginHint: vendorOriginHint.trim() || null,
+        observedTextHint: observedTextHint.trim() || null,
+        metadata: correction.metadata ?? {
+          evidenceNeeded: item.evidenceNeeded,
+        },
+      }),
+    });
+
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+    if (!response.ok) {
+      throw new Error(payload?.error ?? "We could not save this correction feedback.");
+    }
+  }
+
+  async function applyCatalogCorrection(item: GuestResultItem) {
     const correction = corrections[item.resultKey];
 
     if (!correction?.selectedProductId) {
@@ -591,6 +635,21 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
       setDraftErrors((current) => ({
         ...current,
         [item.resultKey]: "We could not find that catalog product anymore.",
+      }));
+      return;
+    }
+
+    try {
+      await persistRecognitionFeedback(item, {
+        correctionMode: "catalog",
+        correctedProductId: selectedProduct.id,
+        correctedProductName: selectedProduct.name,
+      });
+    } catch (error) {
+      setDraftErrors((current) => ({
+        ...current,
+        [item.resultKey]:
+          error instanceof Error ? error.message : "We could not save this correction feedback.",
       }));
       return;
     }
@@ -665,6 +724,17 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
       if (!response.ok) {
         throw new Error(payload.error ?? "We could not create the corrected draft.");
       }
+
+      await persistRecognitionFeedback(item, {
+        correctionMode: "draft",
+        correctedProductName: draftName,
+        metadata: {
+          draftCreated: Boolean(payload.created),
+          existingCatalogProduct: Boolean(payload.existing),
+          returnedName: payload.name ?? draftName,
+          returnedStatus: payload.status ?? null,
+        },
+      });
 
       setDraftMessages((current) => ({
         ...current,
@@ -971,7 +1041,7 @@ export function ScanExperience({ initialGuestMode = false }: { initialGuestMode?
                             <button
                               className="button button-secondary"
                               type="button"
-                              onClick={() => applyCatalogCorrection(item)}
+                              onClick={() => void applyCatalogCorrection(item)}
                             >
                               Apply correction
                             </button>
