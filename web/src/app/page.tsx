@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -36,77 +35,129 @@ function EstalaHub() {
     <main className="estala-home">
       <section className="estala-hero estala-hero-background">
         <div className="estala-copy estala-copy-panel">
-          <p className="estala-kicker">estala.io</p>
-          <h1>A quiet home for projects, images, and independent work.</h1>
+          <p className="estala-kicker">Welcome to Estala</p>
+          <h1>
+            The central home for
+            <br />
+            <span>products and projects</span>
+          </h1>
           <p className="estala-intro">
-            Estala is the parent space. From here, visitors can move into focused projects:
-            visual work, experiments, and practical products built one at a time.
+            Estala connects our tools and work across product management and digital
+            craftsmanship. One hub. Focused on building with clarity and care.
           </p>
 
           <div className="estala-actions">
-            <Link className="button button-primary" href="/art">
-              Explore Art
-            </Link>
+            <a className="button button-primary" href="https://pm.estala.io">
+              Open Project Manager
+            </a>
             <a className="button button-secondary" href="https://madeinm.estala.io">
               Open MadeinM
             </a>
+            <a className="button button-secondary" href="https://events.estala.io">
+              Open Event Followers
+            </a>
+          </div>
+
+          <div className="estala-explore-row">
+            <span className="estala-explore-icon" aria-hidden="true">
+              ◌
+            </span>
+            <p>
+              Explore <a href="https://estala.com">estala.com</a> for art and visual work
+            </p>
           </div>
         </div>
       </section>
 
-      <section className="estala-note">
-        <p>
-          The direction is minimalist and image-led: white space, editorial typography, and a
-          small number of destinations instead of a crowded portal.
-        </p>
+      <section className="estala-projects">
+        <article className="estala-project-card estala-project-card-dark">
+          <div className="estala-project-icon">◫</div>
+          <div className="estala-project-copy">
+            <span>Project Manager</span>
+            <h2>Estala Project Manager</h2>
+            <p>
+              Collaborative planning workspace for projects, tasks, and teams.
+            </p>
+          </div>
+          <div className="estala-preview-grid estala-preview-grid-board" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+          <a className="estala-card-link" href="https://pm.estala.io">
+            Open Project Manager
+          </a>
+        </article>
+
+        <article className="estala-project-card estala-project-card-dark">
+          <div className="estala-project-icon estala-project-icon-letter">M</div>
+          <div className="estala-project-copy">
+            <span>MadeinM</span>
+            <h2>MadeinM</h2>
+            <p>Tools and resources for building and scaling products.</p>
+          </div>
+          <div className="estala-preview-grid estala-preview-grid-chart" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+          <a className="estala-card-link" href="https://madeinm.estala.io">
+            Open MadeinM
+          </a>
+        </article>
+
+        <article className="estala-project-card estala-project-card-dark">
+          <div className="estala-project-icon">◌</div>
+          <div className="estala-project-copy">
+            <span>Events</span>
+            <h2>Event Followers</h2>
+            <p>
+              Event kiosk, live mosaic, and admin tools for capturing audience moments.
+            </p>
+          </div>
+          <div className="estala-preview-grid estala-preview-grid-board" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+          <a className="estala-card-link" href="https://events.estala.io">
+            Open Event Followers
+          </a>
+        </article>
       </section>
 
-      <section className="estala-projects">
-        <article className="estala-project-card estala-project-card-art">
-          <div className="estala-project-image">
-            <Image
-              src="/estala/jellyfish.jpeg"
-              alt="Blue jellyfish photo used as a visual anchor for the art project."
-              fill
-              sizes="(max-width: 960px) 100vw, 36vw"
-              className="estala-card-image"
-            />
-          </div>
-          <div className="estala-project-copy">
-            <span>Project 01</span>
-            <h2>Art from Estala</h2>
-            <p>
-              A space for photography, image studies, and future print or installation work. The
-              first version can be quiet, visual, and intentionally spare.
-            </p>
-            <Link className="button button-secondary" href="/art">
-              View art mockup
-            </Link>
-          </div>
-        </article>
-
-        <article className="estala-project-card estala-project-card-product">
-          <div className="estala-project-copy">
-            <span>Project 02</span>
-            <h2>MadeinM</h2>
-            <p>
-              A live product that helps people identify produce, understand origin confidence,
-              and support local markets in Mexico with clearer evidence.
-            </p>
-            <ul className="estala-project-list">
-              <li>Multi-object scan</li>
-              <li>Origin confidence with context</li>
-              <li>Catalog, admin review, and iOS app</li>
-            </ul>
-            <a className="button button-primary" href="https://madeinm.estala.io">
-              Enter MadeinM
-            </a>
-          </div>
-          <div className="estala-project-meta">
-            <strong>Live now</strong>
-            <p>madeinm.estala.io</p>
-          </div>
-        </article>
+      <section className="estala-roadmap">
+        <p className="estala-kicker">Domain structure</p>
+        <div className="estala-roadmap-grid">
+          <article>
+            <strong>estala.io</strong>
+            <p>This is the central hub that connects our products and projects.</p>
+          </article>
+          <article>
+            <strong>pm.estala.io</strong>
+            <p>Estala Project Manager lives here. Built for collaborative planning.</p>
+          </article>
+          <article>
+            <strong>madeinm.estala.io</strong>
+            <p>MadeinM is our resource hub for building and scaling products.</p>
+          </article>
+          <article>
+            <strong>events.estala.io</strong>
+            <p>Event Followers handles kiosk capture, live displays, and event operations.</p>
+          </article>
+        </div>
+        <p className="estala-roadmap-footer">
+          Art and visual work live on <a href="https://estala.com">estala.com</a>
+        </p>
       </section>
     </main>
   );

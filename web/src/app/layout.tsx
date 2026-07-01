@@ -53,9 +53,13 @@ export default async function RootLayout({
                   </>
                 ) : (
                   <>
-                    <Link href="/">Home</Link>
-                    <Link href="/art">Art</Link>
+                    <Link className="is-active" href="/">
+                      Home
+                    </Link>
+                    <a href="https://pm.estala.io">Project Manager</a>
                     <a href="https://madeinm.estala.io">MadeinM</a>
+                    <a href="https://events.estala.io">Event Followers</a>
+                    <a href="https://estala.com">Estala.com</a>
                   </>
                 )}
               </nav>
@@ -64,30 +68,32 @@ export default async function RootLayout({
 
           <div className="site-main">{children}</div>
 
-          <footer className="site-footer">
-            <div className="site-footer-inner">
-              <div>
-                <strong>{madeinmHost ? "MadeinM" : "Estala"}</strong>
-                <p>
-                  Powered by estala.com. All rights reserved in Mexico and the United States.
-                </p>
-              </div>
+          {madeinmHost ? (
+            <footer className="site-footer">
+              <div className="site-footer-inner">
+                <div>
+                  <strong>{madeinmHost ? "MadeinM" : "Estala"}</strong>
+                  <p>
+                    Powered by estala.com. All rights reserved in Mexico and the United States.
+                  </p>
+                </div>
 
-              <div>
-                <strong>IP Notice</strong>
-                <p>
-                  Third-party trademarks, market data, retailer names, and external product
-                  references remain the property of their respective owners. Official product
-                  origin remains subject to evidence and review.
-                </p>
-              </div>
+                <div>
+                  <strong>IP Notice</strong>
+                  <p>
+                    Third-party trademarks, market data, retailer names, and external product
+                    references remain the property of their respective owners. Official product
+                    origin remains subject to evidence and review.
+                  </p>
+                </div>
 
-              <div>
-                <strong>Version</strong>
-                <p>{madeinmHost ? `Pilot v${appVersion}` : `Hub v${appVersion}`}</p>
+                <div>
+                  <strong>Version</strong>
+                  <p>{madeinmHost ? `Pilot v${appVersion}` : `Hub v${appVersion}`}</p>
+                </div>
               </div>
-            </div>
-          </footer>
+            </footer>
+          ) : null}
         </div>
       </body>
     </html>

@@ -64,44 +64,58 @@ select {
 
 .estala-site-shell {
   background:
-    radial-gradient(circle at top left, rgba(215, 196, 168, 0.18), transparent 26%),
-    linear-gradient(180deg, #faf9f5 0%, #f6f4ee 100%);
+    radial-gradient(circle at top left, rgba(46, 104, 225, 0.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(38, 90, 198, 0.1), transparent 24%),
+    linear-gradient(180deg, #031126 0%, #05162f 42%, #07172e 100%);
 }
 
 .estala-site-shell .site-header-inner,
 .estala-site-shell .site-footer-inner {
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(17, 43, 77, 0.08);
-  color: #203047;
-  box-shadow: 0 16px 40px rgba(17, 24, 39, 0.05);
+  background: rgba(5, 18, 42, 0.82);
+  border-color: rgba(111, 171, 255, 0.16);
+  color: #dbeafe;
+  box-shadow: none;
 }
 
 .estala-site-shell .site-brand {
-  color: #111827;
+  color: #eff6ff;
+}
+
+.estala-site-shell .site-brand span {
+  letter-spacing: 0.34em;
+  font-size: 0.96rem;
+  font-weight: 500;
+  text-transform: uppercase;
 }
 
 .estala-site-shell .site-brand small,
 .estala-site-shell .site-footer-inner p {
-  color: rgba(32, 48, 71, 0.68);
+  color: rgba(219, 234, 254, 0.74);
 }
 
 .estala-site-shell .site-menu a {
-  color: rgba(17, 24, 39, 0.86);
-  border-color: rgba(17, 43, 77, 0.08);
-  background: rgba(244, 247, 251, 0.9);
+  color: #e0ecff;
+  border-color: rgba(125, 170, 255, 0.18);
+  background: transparent;
 }
 
 .estala-site-shell .site-menu a:hover {
-  background: rgba(228, 235, 243, 0.95);
+  background: rgba(108, 154, 255, 0.16);
+}
+
+.estala-site-shell .site-menu a.is-active {
+  border-color: rgba(111, 171, 255, 0.22);
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 -2px 0 #3b82f6;
 }
 
 .estala-home,
 .art-shell {
-  width: min(1200px, calc(100% - 40px));
+  width: min(1220px, calc(100% - 40px));
   margin: 0 auto;
   padding: 24px 0 72px;
   display: grid;
-  gap: 28px;
+  gap: 40px;
 }
 
 .estala-hero,
@@ -109,19 +123,58 @@ select {
   display: grid;
   grid-template-columns: 1fr;
   gap: 28px;
-  padding: 28px;
-  border-radius: 36px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(17, 43, 77, 0.08);
-  box-shadow: 0 20px 60px rgba(7, 18, 31, 0.08);
+  padding: 34px;
+  border-radius: 40px;
 }
 
 .estala-hero-background {
-  min-height: 640px;
-  align-items: end;
+  position: relative;
+  min-height: 660px;
+  align-items: center;
   background:
-    linear-gradient(180deg, rgba(250, 249, 245, 0.28) 0%, rgba(250, 249, 245, 0.38) 18%, rgba(250, 249, 245, 0.82) 58%, rgba(250, 249, 245, 0.96) 100%),
-    url("/estala/hero-background.jpeg") center top / cover no-repeat;
+    radial-gradient(circle at 18% 12%, rgba(24, 71, 167, 0.18), transparent 22%),
+    radial-gradient(circle at 84% 24%, rgba(61, 122, 255, 0.22), transparent 20%),
+    linear-gradient(180deg, #02102a 0%, #04173b 56%, #061b45 100%);
+  border: 1px solid rgba(111, 171, 255, 0.14);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.estala-hero-background::before,
+.estala-hero-background::after {
+  content: "";
+  position: absolute;
+  right: clamp(44px, 7vw, 96px);
+  top: 50%;
+  border-radius: 24px;
+  transform: translateY(-50%) rotate(-8deg);
+  pointer-events: none;
+}
+
+.estala-hero-background::before {
+  width: clamp(190px, 23vw, 290px);
+  height: clamp(280px, 37vw, 470px);
+  background:
+    linear-gradient(180deg, rgba(80, 140, 255, 0.26), rgba(255, 255, 255, 0.02)),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(183, 220, 255, 0.72);
+  box-shadow:
+    0 0 40px rgba(59, 130, 246, 0.18),
+    inset 0 -22px 40px rgba(88, 151, 255, 0.18);
+}
+
+.estala-hero-background::after {
+  right: clamp(128px, 14vw, 188px);
+  top: 58%;
+  width: clamp(150px, 18vw, 230px);
+  height: clamp(220px, 29vw, 330px);
+  background:
+    linear-gradient(180deg, rgba(80, 140, 255, 0.3), rgba(255, 255, 255, 0.02)),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(183, 220, 255, 0.54);
+  box-shadow:
+    0 0 28px rgba(59, 130, 246, 0.12),
+    inset 0 -16px 30px rgba(88, 151, 255, 0.16);
 }
 
 .estala-copy,
@@ -132,29 +185,36 @@ select {
 }
 
 .estala-copy-panel {
-  width: min(100%, 640px);
-  padding: 26px 28px;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(17, 43, 77, 0.08);
-  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.05);
-  backdrop-filter: blur(12px);
+  width: min(100%, 600px);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  position: relative;
+  z-index: 1;
 }
 
 .estala-kicker {
   font-size: 0.78rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #8b5e3c;
+  color: #3b82f6;
   font-weight: 700;
 }
 
 .estala-copy h1,
 .art-copy h1 {
-  font-size: clamp(2.3rem, 5.4vw, 4.4rem);
-  line-height: 0.98;
-  color: #101a29;
-  max-width: 11ch;
+  font-size: clamp(3.4rem, 6vw, 5.4rem);
+  line-height: 0.92;
+  color: #f8fbff;
+  max-width: 10.5ch;
+  letter-spacing: -0.04em;
+}
+
+.estala-copy h1 span {
+  color: #2f68ff;
 }
 
 .estala-intro,
@@ -167,10 +227,46 @@ select {
   line-height: 1.72;
 }
 
+.estala-copy-panel .estala-intro {
+  color: rgba(214, 227, 255, 0.78);
+  max-width: 32rem;
+  font-size: 1rem;
+}
+
 .estala-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  margin-top: 12px;
+}
+
+.estala-explore-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(111, 171, 255, 0.14);
+}
+
+.estala-explore-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(167, 192, 234, 0.76);
+  font-size: 1.1rem;
+}
+
+.estala-explore-row p {
+  color: rgba(167, 192, 234, 0.86);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.estala-explore-row a {
+  color: #3b82f6;
 }
 
 .estala-hero-media,
@@ -188,47 +284,55 @@ select {
   object-fit: cover;
 }
 
-.estala-note {
-  padding: 0 8px;
-}
-
 .estala-projects,
 .art-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  gap: 28px;
+}
+
+.estala-projects {
+  align-items: stretch;
 }
 
 .estala-project-card,
 .art-grid article {
   border-radius: 32px;
-  border: 1px solid rgba(17, 43, 77, 0.08);
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 20px 60px rgba(7, 18, 31, 0.08);
+  border: 1px solid rgba(111, 171, 255, 0.12);
+  background: linear-gradient(180deg, rgba(5, 22, 51, 0.98), rgba(6, 27, 63, 0.98));
+  box-shadow: none;
   overflow: hidden;
 }
 
-.estala-project-card-art {
+.estala-project-card-dark {
   display: grid;
-  grid-template-rows: minmax(280px, 360px) auto;
-}
-
-.estala-project-card-product {
-  display: grid;
-  gap: 18px;
-  padding: 26px;
+  gap: 20px;
+  padding: 30px;
   align-content: start;
 }
 
-.estala-project-image {
-  position: relative;
-  min-height: 320px;
+.estala-project-icon {
+  width: 70px;
+  height: 70px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(25, 70, 164, 0.78), rgba(11, 37, 87, 0.88));
+  border: 1px solid rgba(86, 143, 255, 0.24);
+  color: #eff6ff;
+  font-size: 1.8rem;
+}
+
+.estala-project-icon-letter {
+  font-weight: 700;
+  color: #3b82f6;
 }
 
 .estala-project-copy {
   display: grid;
   gap: 16px;
-  padding: 24px 26px 26px;
+  padding: 0;
 }
 
 .estala-project-copy span,
@@ -236,7 +340,7 @@ select {
   font-size: 0.78rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #8b5e3c;
+  color: #2f68ff;
   font-weight: 700;
 }
 
@@ -244,29 +348,177 @@ select {
 .art-grid article h2 {
   font-size: clamp(1.55rem, 2.6vw, 2.2rem);
   line-height: 1.08;
-  color: #101a29;
+  color: #f8fbff;
 }
 
-.estala-project-list {
+.estala-project-card .estala-project-copy p {
+  color: rgba(190, 208, 238, 0.82);
+  max-width: 22rem;
+}
+
+.estala-preview-grid {
+  height: 210px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(111, 171, 255, 0.1);
+  background: linear-gradient(180deg, rgba(8, 29, 67, 0.8), rgba(5, 19, 42, 0.82));
+}
+
+.estala-preview-grid span {
+  position: absolute;
+  border-radius: 8px;
+  background: rgba(40, 90, 190, 0.24);
+  border: 1px solid rgba(90, 145, 255, 0.08);
+}
+
+.estala-preview-grid-board span:nth-child(1) {
+  top: 28px;
+  left: 22px;
+  width: 56px;
+  height: 6px;
+}
+
+.estala-preview-grid-board span:nth-child(2) {
+  top: 48px;
+  left: 22px;
+  width: 36px;
+  height: 6px;
+}
+
+.estala-preview-grid-board span:nth-child(3) {
+  top: 34px;
+  left: 98px;
+  width: 92px;
+  height: 74px;
+}
+
+.estala-preview-grid-board span:nth-child(4) {
+  top: 34px;
+  left: 200px;
+  width: 92px;
+  height: 74px;
+}
+
+.estala-preview-grid-board span:nth-child(5) {
+  top: 34px;
+  left: 302px;
+  width: 92px;
+  height: 112px;
+}
+
+.estala-preview-grid-board span:nth-child(6) {
+  right: 24px;
+  bottom: 24px;
+  width: 110px;
+  height: 74px;
+}
+
+.estala-preview-grid-chart span:nth-child(1) {
+  top: 30px;
+  left: 24px;
+  width: 42px;
+  height: 6px;
+}
+
+.estala-preview-grid-chart span:nth-child(2) {
+  top: 54px;
+  left: 24px;
+  width: 94px;
+  height: 96px;
+}
+
+.estala-preview-grid-chart span:nth-child(3) {
+  top: 48px;
+  left: 136px;
+  width: 192px;
+  height: 106px;
+}
+
+.estala-preview-grid-chart span:nth-child(4) {
+  top: 34px;
+  right: 18px;
+  width: 64px;
+  height: 56px;
+}
+
+.estala-preview-grid-chart span:nth-child(5) {
+  bottom: 22px;
+  left: 144px;
+  width: 168px;
+  height: 54px;
+}
+
+.estala-preview-grid-chart span:nth-child(6) {
+  bottom: 18px;
+  right: 20px;
+  width: 70px;
+  height: 96px;
+}
+
+.estala-card-link {
+  display: inline-flex;
+  align-items: center;
+  color: #2f68ff;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.estala-card-link::after {
+  content: "›";
+  margin-left: 10px;
+  font-size: 1.2rem;
+}
+
+.estala-roadmap {
+  display: grid;
+  gap: 24px;
+  padding: 26px 30px 24px;
+  border-radius: 28px;
+  border: 1px solid rgba(111, 171, 255, 0.12);
+  background: linear-gradient(180deg, rgba(4, 19, 44, 0.98), rgba(4, 16, 36, 0.98));
+  box-shadow: none;
+}
+
+.estala-roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+}
+
+.estala-roadmap-grid article {
   display: grid;
   gap: 10px;
-  color: #203047;
-  padding-left: 18px;
+  padding: 8px 24px 8px 0;
+  background: transparent;
+  border: 0;
 }
 
-.estala-project-meta {
-  padding: 18px 20px;
-  border-radius: 22px;
-  background: linear-gradient(180deg, #123154 0%, #0f2741 100%);
-  color: #f4e7c8;
+.estala-roadmap-grid article + article {
+  padding-left: 24px;
+  border-left: 1px solid rgba(111, 171, 255, 0.12);
 }
 
-.estala-project-meta strong {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 0.8rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.estala-roadmap-grid strong {
+  color: #f8fbff;
+  font-size: 0.96rem;
+  font-weight: 500;
+}
+
+.estala-roadmap-grid p {
+  color: rgba(167, 192, 234, 0.76);
+  line-height: 1.65;
+}
+
+.estala-roadmap-footer {
+  padding-top: 18px;
+  border-top: 1px solid rgba(111, 171, 255, 0.12);
+  color: rgba(167, 192, 234, 0.76);
+  text-align: center;
+}
+
+.estala-roadmap-footer a {
+  color: #3b82f6;
 }
 
 .art-grid article {
@@ -466,6 +718,40 @@ select {
   background: rgba(255, 255, 255, 0.72);
   border-color: rgba(49, 95, 61, 0.22);
   color: var(--green-deep);
+}
+
+.button-tertiary {
+  background: transparent;
+  border-color: rgba(154, 195, 255, 0.22);
+  color: #dbeafe;
+}
+
+.estala-site-shell .button-primary {
+  background: linear-gradient(180deg, #4b8dff 0%, #2f68c8 100%);
+  color: #eff6ff;
+  box-shadow: 0 14px 30px rgba(47, 104, 200, 0.24);
+}
+
+.estala-site-shell .button-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(154, 195, 255, 0.2);
+  color: #eaf2ff;
+}
+
+.estala-site-shell .button-tertiary {
+  background: transparent;
+  border-color: rgba(154, 195, 255, 0.2);
+  color: #dbeafe;
+}
+
+.estala-site-shell .estala-project-card .button-secondary {
+  background: rgba(47, 104, 200, 0.08);
+  border-color: rgba(47, 104, 200, 0.18);
+  color: #1f4da1;
+}
+
+.estala-site-shell .estala-project-card .button-primary {
+  color: #eff6ff;
 }
 
 .hero-points {
@@ -1209,8 +1495,13 @@ select {
   .estala-hero-background {
     min-height: 560px;
     padding: 22px;
-    align-items: end;
-    background-position: center center;
+    align-items: center;
+  }
+
+  .estala-hero-background::before,
+  .estala-hero-background::after {
+    opacity: 0.65;
+    right: 28px;
   }
 
   .estala-copy-panel {
@@ -1223,6 +1514,12 @@ select {
   .future-copy h2,
   .scan-hero h1 {
     max-width: none;
+  }
+
+  .estala-projects,
+  .art-grid,
+  .estala-roadmap-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1259,11 +1556,21 @@ select {
     background-position: center top;
   }
 
+  .estala-hero-background::before,
+  .estala-hero-background::after {
+    display: none;
+  }
+
   .estala-copy-panel {
     width: 100%;
     padding: 18px;
     border-radius: 22px;
-    background: rgba(250, 249, 245, 0.84);
+    background: rgba(9, 22, 48, 0.56);
+  }
+
+  .estala-domain-list span {
+    width: 100%;
+    justify-content: center;
   }
 
   .estala-copy h1,
