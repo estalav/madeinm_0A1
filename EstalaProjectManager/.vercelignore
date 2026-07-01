@@ -1,0 +1,10 @@
+.DS_Store
+.env*
+.next
+.vercel
+node_modules
+coverage
+test-results
+src-tauri/target
+src-tauri/gen
+src-tauri/.DS_Store
