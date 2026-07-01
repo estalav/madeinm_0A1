@@ -1,0 +1,181 @@
+{
+  "projects": [
+    {
+      "id": "launch",
+      "name": "Summer Launch",
+      "client": "Estala Studio",
+      "phase": "Execution sprint",
+      "health": "On track",
+      "progress": 68,
+      "focus": "Bring campaign planning, content review, and launch assets into one shared rhythm.",
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "Finalize kickoff timeline",
+          "owner": "Maya",
+          "due": "Jun 29",
+          "status": "active",
+          "priority": "high",
+          "lane": "Planning",
+          "summary": "Align channel launch dates, owners, and review windows before Friday handoff.",
+          "checklist": [
+            "Confirm launch milestones",
+            "Lock creative review dates",
+            "Publish timeline for client signoff"
+          ],
+          "comments": [
+            {
+              "id": "c1",
+              "author": "Leo",
+              "note": "Client asked for a shorter approval loop on social assets.",
+              "timestamp": "Today, 9:10 AM"
+            },
+            {
+              "id": "c2",
+              "author": "Maya",
+              "note": "Updated the review dates and moved the paid media handoff to Wednesday.",
+              "timestamp": "Today, 11:34 AM"
+            }
+          ]
+        },
+        {
+          "id": "t2",
+          "title": "Build launch asset tracker",
+          "owner": "Estala",
+          "due": "Jul 1",
+          "status": "review",
+          "priority": "medium",
+          "lane": "Assets",
+          "summary": "Track deck, copy doc, creative pack, and final export links in one place.",
+          "checklist": [
+            "Add file owners",
+            "Mark missing exports",
+            "Link review notes"
+          ],
+          "comments": [
+            {
+              "id": "c3",
+              "author": "Sofia",
+              "note": "Tracker structure looks good. We only need a separate row for final video captions.",
+              "timestamp": "Yesterday"
+            }
+          ]
+        },
+        {
+          "id": "t3",
+          "title": "Approve homepage copy",
+          "owner": "Nina",
+          "due": "Jul 2",
+          "status": "backlog",
+          "priority": "medium",
+          "lane": "Content",
+          "summary": "Collect brand edits and sign off on the final copy blocks for the launch page.",
+          "checklist": [
+            "Review hero copy",
+            "Confirm product proof points",
+            "Send approval note"
+          ],
+          "comments": []
+        },
+        {
+          "id": "t4",
+          "title": "Launch readiness review",
+          "owner": "Dario",
+          "due": "Jul 5",
+          "status": "done",
+          "priority": "low",
+          "lane": "Operations",
+          "summary": "Close out blockers and make sure the team has one place to monitor progress.",
+          "checklist": [
+            "Document risks",
+            "Assign launch-day owners",
+            "Publish team checklist"
+          ],
+          "comments": [
+            {
+              "id": "c4",
+              "author": "Dario",
+              "note": "No blockers left. Added owners for launch-day monitoring.",
+              "timestamp": "Monday"
+            }
+          ]
+        }
+      ],
+      "attachments": [
+        {
+          "id": "a1",
+          "name": "Launch plan v3",
+          "kind": "doc",
+          "updatedAt": "2h ago",
+          "visibility": "team"
+        },
+        {
+          "id": "a2",
+          "name": "Creative tracker",
+          "kind": "sheet",
+          "updatedAt": "Today",
+          "visibility": "team"
+        },
+        {
+          "id": "a3",
+          "name": "Client brief",
+          "kind": "brief",
+          "updatedAt": "Yesterday",
+          "visibility": "lead"
+        }
+      ]
+    },
+    {
+      "id": "ops",
+      "name": "Client Ops Hub",
+      "client": "Internal",
+      "phase": "Template setup",
+      "health": "Needs review",
+      "progress": 41,
+      "focus": "Standardize intake, delivery steps, and shared templates for recurring projects.",
+      "tasks": [
+        {
+          "id": "t5",
+          "title": "Template the intake form",
+          "owner": "Estala",
+          "due": "Jul 3",
+          "status": "active",
+          "priority": "high",
+          "lane": "Systems",
+          "summary": "Turn repeated kickoff questions into a reusable intake workflow.",
+          "checklist": [
+            "Group project questions",
+            "Add default owner rules",
+            "Define request priorities"
+          ],
+          "comments": []
+        },
+        {
+          "id": "t6",
+          "title": "Review delivery checklist",
+          "owner": "Maya",
+          "due": "Jul 6",
+          "status": "backlog",
+          "priority": "medium",
+          "lane": "Operations",
+          "summary": "Make sure recurring projects follow the same delivery process and handoff notes.",
+          "checklist": [
+            "Map milestones",
+            "Add file requirements",
+            "Confirm approval order"
+          ],
+          "comments": []
+        }
+      ],
+      "attachments": [
+        {
+          "id": "a4",
+          "name": "Intake template",
+          "kind": "doc",
+          "updatedAt": "Today",
+          "visibility": "team"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "name": "Estala Project Events",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "estala-project-events",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "0b0b4f17-615f-4d4b-bd16-57e68fd69001",
+      "name": "Project Event Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const envelope = $input.first().json;\nconst input = envelope.body ?? envelope;\nconst taskTitle = input.task?.title ?? 'Unknown task';\nconst projectName = input.project?.name ?? 'Unknown project';\nconst eventType = input.eventType ?? 'unknown';\nreturn [{\n  json: {\n    ok: true,\n    receivedAt: new Date().toISOString(),\n    summary: `Workflow received ${eventType} for ${taskTitle} in ${projectName}.`,\n    eventType,\n    project: input.project ?? null,\n    task: input.task ?? null,\n    source: input.source ?? 'estala-project-manager',\n    nextStep: 'Attach email, Slack, CRM, or database actions after this node.'\n  }\n}];"
+      },
+      "id": "efc4d3cf-604e-4bd6-bc0e-31b5965d1737",
+      "name": "Build Automation Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Project Event Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Automation Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
