@@ -8,9 +8,16 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from "@/lib/demo-data";
+import {
+  demoWorkspaceMembers,
+  normalizeMemberEmail,
+  type WorkspaceMember,
+  type WorkspaceMemberRole,
+} from "@/lib/workspace-members";
 
 type WorkspaceData = {
   projects: Project[];
+  members: WorkspaceMember[];
 };
 
 type CreateProjectInput = {
@@ -37,6 +44,11 @@ type UpdateTaskInput = Partial<
   Pick<Task, "title" | "owner" | "due" | "status" | "priority" | "lane" | "summary">
 >;
 
+type CreateMemberInput = {
+  email: string;
+  role: WorkspaceMemberRole;
+};
+
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "workspace.json");
 
@@ -44,6 +56,10 @@ let writeChain = Promise.resolve();
 
 function cloneProjects(projects: Project[]) {
   return structuredClone(projects);
+}
+
+function cloneMembers(members: WorkspaceMember[]) {
+  return structuredClone(members);
 }
 
 function calculateProgress(tasks: Task[]) {
@@ -64,6 +80,7 @@ async function ensureWorkspaceDataFile() {
   } catch {
     const initialData: WorkspaceData = {
       projects: cloneProjects(demoProjects),
+      members: cloneMembers(demoWorkspaceMembers),
     };
 
     await writeFile(DATA_FILE, JSON.stringify(initialData, null, 2));
@@ -73,7 +90,12 @@ async function ensureWorkspaceDataFile() {
 async function readWorkspaceData() {
   await ensureWorkspaceDataFile();
   const contents = await readFile(DATA_FILE, "utf8");
-  return JSON.parse(contents) as WorkspaceData;
+  const parsed = JSON.parse(contents) as Partial<WorkspaceData>;
+
+  return {
+    projects: parsed.projects ?? cloneProjects(demoProjects),
+    members: parsed.members ?? cloneMembers(demoWorkspaceMembers),
+  } satisfies WorkspaceData;
 }
 
 async function writeWorkspaceData(data: WorkspaceData) {
@@ -269,4 +291,46 @@ export async function deleteLocalTask(taskId: string) {
   }
 
   return null;
+}
+
+export async function listLocalMembers() {
+  const data = await readWorkspaceData();
+  return cloneMembers(data.members);
+}
+
+export async function createLocalMember(input: CreateMemberInput) {
+  const data = await readWorkspaceData();
+  const email = normalizeMemberEmail(input.email);
+
+  if (data.members.some((member) => member.email === email)) {
+    throw new Error("A collaborator with this email already exists.");
+  }
+
+  const member: WorkspaceMember = {
+    id: email,
+    workspaceId: "workspace-estala",
+    email,
+    role: input.role,
+    createdAt: new Date().toISOString(),
+  };
+
+  data.members.push(member);
+  await writeWorkspaceData(data);
+
+  return member;
+}
+
+export async function deleteLocalMember(memberId: string) {
+  const data = await readWorkspaceData();
+  const normalizedId = normalizeMemberEmail(memberId);
+  const memberIndex = data.members.findIndex((member) => member.id === normalizedId);
+
+  if (memberIndex === -1) {
+    return false;
+  }
+
+  data.members.splice(memberIndex, 1);
+  await writeWorkspaceData(data);
+
+  return true;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   demoProjects,
@@ -630,16 +631,13 @@ export function WorkspaceApp({
         }`}
       >
         <aside
-          className={`rounded-[24px] bg-[#17313c] text-[#f8f1e6] shadow-[var(--shadow-md)] transition-all ${
+          className={`flex flex-col rounded-[24px] bg-[#17313c] text-[#f8f1e6] shadow-[var(--shadow-md)] transition-all ${
             isSidebarCollapsed ? "p-3" : "p-5"
           }`}
         >
           <div className="mb-6 flex items-center justify-between">
             {isSidebarCollapsed ? (
               <div className="flex w-full flex-col items-center gap-3">
-                <div className="rounded-full border border-white/15 px-3 py-1 text-xs text-white/75">
-                  CRUD
-                </div>
                 <button
                   type="button"
                   onClick={() => setIsSidebarCollapsed(false)}
@@ -676,9 +674,6 @@ export function WorkspaceApp({
                       <span className="block h-px w-4 bg-current" />
                     </span>
                   </button>
-                  <div className="rounded-full border border-white/15 px-3 py-1 text-xs text-white/75">
-                    CRUD
-                  </div>
                 </div>
               </>
             )}
@@ -745,6 +740,55 @@ export function WorkspaceApp({
               Create your first project to start adding tasks, notes, and automation.
             </div>
           )}
+
+          <div className="mt-auto pt-5">
+            {isSidebarCollapsed ? (
+              <div className="flex flex-col items-center gap-2">
+                <Link
+                  href="/admin"
+                  aria-label="Open admin"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/85 transition hover:bg-white/10"
+                >
+                  A
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void signOut();
+                  }}
+                  disabled={isSigningOut}
+                  aria-label="Sign out"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/85 transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
+                >
+                  ↗
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-[#d7c4a4]">
+                  Workspace access
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href="/admin"
+                    className="rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10"
+                  >
+                    Admin
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void signOut();
+                    }}
+                    disabled={isSigningOut}
+                    className="rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {isSigningOut ? "Signing out..." : "Logout"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </aside>
 
         <section className="min-w-0 rounded-[24px] border border-[var(--line)] bg-[var(--surface-strong)] p-5">
